@@ -1,0 +1,37 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: spooler-backend
+    restart: unless-stopped
+    environment:
+      DOWNLOAD_DIR: /data/downloads
+      DB_PATH: /data/downloader.db
+      MAX_CONCURRENT_DOWNLOADS: "2"
+    volumes:
+      - spooler-data:/data
+    ports:
+      # exposed mainly for direct API access / debugging; the frontend
+      # talks to the backend over the internal docker network instead
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: spooler-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+
+volumes:
+  spooler-data:
+    name: spooler-data

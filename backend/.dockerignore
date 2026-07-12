@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+downloader.db
+downloads/
+.env
