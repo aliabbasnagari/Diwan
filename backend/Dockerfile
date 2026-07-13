@@ -12,10 +12,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 
-# Persisted at runtime via volumes (see docker-compose.yml)
+# Persisted at runtime via volumes (see docker-compose.yml).
+# DOWNLOAD_DIR is scratch space for in-progress/video downloads.
+# LIBRARY_DIR should point at the same folder Navidrome scans.
 ENV DOWNLOAD_DIR=/data/downloads
+ENV LIBRARY_DIR=/music
 ENV DB_PATH=/data/downloader.db
-RUN mkdir -p /data/downloads
+RUN mkdir -p /data/downloads /music
 
 EXPOSE 8000
 

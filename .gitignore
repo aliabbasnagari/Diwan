@@ -1,7 +1,8 @@
-backend/.venv/
 backend/venv/
+backend/.venv/
 backend/downloader.db
 backend/downloads/
+backend/library/
 backend/__pycache__/
 backend/app/__pycache__/
 frontend/node_modules/

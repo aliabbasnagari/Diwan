@@ -11,9 +11,12 @@ from .config import CORS_ORIGINS
 from .database import get_db, init_db, SessionLocal
 from .models import Download, DownloadStatus, MediaType
 from .schemas import PreviewRequest, DownloadCreateRequest
-from . import downloader
+from . import downloader, settings_service
+from .routes_library import router as library_router
+from .routes_settings import router as settings_router
+from .routes_navidrome import router as navidrome_router
 
-app = FastAPI(title="Media Downloader API")
+app = FastAPI(title="Navidrome Library Manager API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -23,17 +26,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(library_router)
+app.include_router(settings_router)
+app.include_router(navidrome_router)
+
+ACTIVE_STATUSES = [
+    DownloadStatus.DOWNLOADING, DownloadStatus.QUEUED,
+    DownloadStatus.FETCHING_INFO, DownloadStatus.PROCESSING, DownloadStatus.TAGGING,
+]
+
 
 @app.on_event("startup")
 def on_startup():
     init_db()
-    downloader.start_workers()
-    # Resume anything left mid-flight from a previous run as failed/queued
     db = SessionLocal()
     try:
-        stuck = db.query(Download).filter(
-            Download.status.in_([DownloadStatus.DOWNLOADING, DownloadStatus.FETCHING_INFO, DownloadStatus.PROCESSING])
-        ).all()
+        settings_service.get_settings(db)  # ensures the settings row + dirs exist
+    finally:
+        db.close()
+
+    downloader.start_workers()
+
+    # Resume anything left mid-flight from a previous run
+    db = SessionLocal()
+    try:
+        stuck = db.query(Download).filter(Download.status.in_(ACTIVE_STATUSES)).all()
         for row in stuck:
             row.status = DownloadStatus.QUEUED
             row.progress_percent = 0
@@ -67,6 +84,10 @@ def create_download(req: DownloadCreateRequest, db: Session = Depends(get_db)):
         quality=req.quality,
         audio_format=req.audio_format,
         subtitles=req.subtitles,
+        add_to_library=req.add_to_library and req.media_type == "audio",
+        tag_artist=req.tag_artist,
+        tag_album=req.tag_album,
+        tag_title=req.tag_title,
         status=DownloadStatus.QUEUED,
     )
     db.add(row)
@@ -153,9 +174,7 @@ def stats(db: Session = Depends(get_db)):
     total = db.query(func.count(Download.id)).scalar()
     completed = db.query(func.count(Download.id)).filter(Download.status == DownloadStatus.COMPLETED).scalar()
     failed = db.query(func.count(Download.id)).filter(Download.status == DownloadStatus.FAILED).scalar()
-    active = db.query(func.count(Download.id)).filter(
-        Download.status.in_([DownloadStatus.DOWNLOADING, DownloadStatus.QUEUED, DownloadStatus.FETCHING_INFO, DownloadStatus.PROCESSING])
-    ).scalar()
+    active = db.query(func.count(Download.id)).filter(Download.status.in_(ACTIVE_STATUSES)).scalar()
     total_bytes = db.query(func.coalesce(func.sum(Download.filesize), 0)).filter(
         Download.status == DownloadStatus.COMPLETED
     ).scalar()

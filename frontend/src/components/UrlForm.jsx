@@ -1,156 +1,175 @@
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Search, Download as DownloadIcon } from "lucide-react";
 import { api } from "../api.js";
+import { formatDuration, formatBytes } from "../utils.js";
 
 const AUDIO_FORMATS = ["mp3", "m4a", "opus", "wav", "flac"];
 
-export default function UrlForm({ onQueued }) {
+export default function UrlForm() {
   const [url, setUrl] = useState("");
-  const [mediaType, setMediaType] = useState("video");
+  const [mediaType, setMediaType] = useState("audio");
   const [quality, setQuality] = useState("best");
   const [audioFormat, setAudioFormat] = useState("mp3");
   const [subtitles, setSubtitles] = useState(false);
+  const [addToLibrary, setAddToLibrary] = useState(true);
+  const [tagArtist, setTagArtist] = useState("");
+  const [tagAlbum, setTagAlbum] = useState("");
+  const [tagTitle, setTagTitle] = useState("");
 
-  const [preview, setPreview] = useState(null);       // metadata + formats from yt-dlp
-  const [fetched, setFetched] = useState(false);       // has this exact url been fetched?
-  const [fetching, setFetching] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [fetched, setFetched] = useState(false);
+  const qc = useQueryClient();
 
-  function handleUrlChange(e) {
-    setUrl(e.target.value);
-    // any edit invalidates the previous fetch — must re-fetch before downloading
-    if (fetched) setFetched(false);
-    setPreview(null);
-    setError(null);
-  }
-
-  async function handleFetch() {
-    if (!url.trim()) return;
-    setError(null);
-    setFetching(true);
-    setPreview(null);
-    try {
-      const info = await api.preview(url.trim());
+  const fetchMutation = useMutation({
+    mutationFn: () => api.preview(url.trim()),
+    onSuccess: (info) => {
       setPreview(info);
       const qualities = info.video_qualities || [{ value: "best", label: "Best available" }];
       setQuality(qualities[0].value);
+      setTagArtist(info.artist || "");
+      setTagAlbum(info.album || "");
+      setTagTitle(info.track || info.title || "");
       setFetched(true);
-    } catch (e) {
-      setError(e.message || "Could not fetch that URL.");
-      setFetched(false);
-    } finally {
-      setFetching(false);
-    }
-  }
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
-  async function handleDownload() {
-    if (!url.trim() || !fetched) return;
-    setError(null);
-    setSubmitting(true);
-    try {
-      await api.createDownload({
+  const downloadMutation = useMutation({
+    mutationFn: () =>
+      api.createDownload({
         url: url.trim(),
         media_type: mediaType,
         quality: mediaType === "video" ? quality : "best",
         audio_format: audioFormat,
         subtitles,
-      });
+        add_to_library: mediaType === "audio" && addToLibrary,
+        tag_artist: tagArtist || null,
+        tag_album: tagAlbum || null,
+        tag_title: tagTitle || null,
+      }),
+    onSuccess: () => {
+      toast.success("Queued");
       setUrl("");
       setPreview(null);
       setFetched(false);
-      onQueued();
-    } catch (e) {
-      setError(e.message || "Could not queue that download.");
-    } finally {
-      setSubmitting(false);
-    }
+      qc.invalidateQueries({ queryKey: ["downloads"] });
+      qc.invalidateQueries({ queryKey: ["download-stats"] });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  function handleUrlChange(e) {
+    setUrl(e.target.value);
+    if (fetched) setFetched(false);
+    setPreview(null);
   }
 
   function handleKeyDown(e) {
     if (e.key !== "Enter") return;
-    if (fetched) handleDownload();
-    else handleFetch();
+    if (fetched) downloadMutation.mutate();
+    else if (url.trim()) fetchMutation.mutate();
   }
 
   const qualities = preview?.video_qualities || [];
 
   return (
-    <div className="deck">
-      <div className="deck-row">
+    <div className="panel p-5">
+      <div className="flex gap-2">
         <input
-          className="url-input"
+          className="input flex-1"
           placeholder="Paste a video / audio URL…"
           value={url}
           onChange={handleUrlChange}
           onKeyDown={handleKeyDown}
         />
-
         {!fetched ? (
-          <button className="pull-btn" onClick={handleFetch} disabled={fetching || !url.trim()}>
-            {fetching ? "Fetching…" : "Fetch"}
+          <button
+            className="btn-primary flex items-center gap-1.5 shrink-0"
+            onClick={() => fetchMutation.mutate()}
+            disabled={fetchMutation.isPending || !url.trim()}
+          >
+            <Search className="w-3.5 h-3.5" /> {fetchMutation.isPending ? "Fetching…" : "Fetch"}
           </button>
         ) : (
-          <button className="pull-btn" onClick={handleDownload} disabled={submitting}>
-            {submitting ? "Queuing…" : "Download"}
+          <button
+            className="btn-primary flex items-center gap-1.5 shrink-0"
+            onClick={() => downloadMutation.mutate()}
+            disabled={downloadMutation.isPending}
+          >
+            <DownloadIcon className="w-3.5 h-3.5" /> {downloadMutation.isPending ? "Queuing…" : "Download"}
           </button>
         )}
       </div>
 
       {fetched && (
-        <div className="deck-options">
-          <div className="seg-toggle">
-            <button className={mediaType === "video" ? "active" : ""} onClick={() => setMediaType("video")}>
-              Video
-            </button>
-            <button className={mediaType === "audio" ? "active" : ""} onClick={() => setMediaType("audio")}>
-              Audio only
-            </button>
-          </div>
-
-          {mediaType === "video" ? (
-            <select className="select" value={quality} onChange={(e) => setQuality(e.target.value)}>
-              {qualities.map((q) => (
-                <option key={q.value} value={q.value}>
-                  {q.label}
-                  {q.filesize ? ` · ${formatBytes(q.filesize)}` : ""}
-                </option>
+        <div className="mt-4 space-y-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex border border-ink-600 rounded-lg overflow-hidden">
+              {["video", "audio"].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setMediaType(t)}
+                  className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
+                    mediaType === t ? "bg-brass-600 text-parchment-100" : "text-parchment-500 hover:text-parchment-100"
+                  }`}
+                >
+                  {t === "video" ? "Video" : "Audio only"}
+                </button>
               ))}
-            </select>
-          ) : (
-            <>
-              <select className="select" value={audioFormat} onChange={(e) => setAudioFormat(e.target.value)}>
-                {AUDIO_FORMATS.map((f) => (
-                  <option key={f} value={f}>
-                    {f.toUpperCase()}
+            </div>
+
+            {mediaType === "video" ? (
+              <select className="select" value={quality} onChange={(e) => setQuality(e.target.value)}>
+                {qualities.map((q) => (
+                  <option key={q.value} value={q.value}>
+                    {q.label}
+                    {q.filesize ? ` · ${formatBytes(q.filesize)}` : ""}
                   </option>
                 ))}
               </select>
-              <span className="checkbox-lbl" style={{ cursor: "default" }}>
-                Best quality (via ffmpeg)
-              </span>
-            </>
+            ) : (
+              <select className="select" value={audioFormat} onChange={(e) => setAudioFormat(e.target.value)}>
+                {AUDIO_FORMATS.map((f) => (
+                  <option key={f} value={f}>{f.toUpperCase()}</option>
+                ))}
+              </select>
+            )}
+
+            {mediaType === "video" && (
+              <label className="flex items-center gap-2 text-xs font-mono text-parchment-500 cursor-pointer">
+                <input type="checkbox" checked={subtitles} onChange={(e) => setSubtitles(e.target.checked)} />
+                Subtitles (en)
+              </label>
+            )}
+          </div>
+
+          {mediaType === "audio" && (
+            <div className="rounded-lg border border-ink-600 p-3.5 space-y-3">
+              <label className="flex items-center gap-2 text-xs font-mono text-parchment-300 cursor-pointer">
+                <input type="checkbox" checked={addToLibrary} onChange={(e) => setAddToLibrary(e.target.checked)} />
+                Add to library after download (tagged &amp; organized for Navidrome)
+              </label>
+              {addToLibrary && (
+                <div className="grid grid-cols-3 gap-2">
+                  <input className="input" placeholder="Artist" value={tagArtist} onChange={(e) => setTagArtist(e.target.value)} />
+                  <input className="input" placeholder="Album" value={tagAlbum} onChange={(e) => setTagAlbum(e.target.value)} />
+                  <input className="input" placeholder="Title" value={tagTitle} onChange={(e) => setTagTitle(e.target.value)} />
+                </div>
+              )}
+            </div>
           )}
 
-          {mediaType === "video" && (
-            <label className="checkbox-lbl">
-              <input type="checkbox" checked={subtitles} onChange={(e) => setSubtitles(e.target.checked)} />
-              Subtitles (en)
-            </label>
-          )}
-        </div>
-      )}
-
-      {error && <div className="error-banner">{error}</div>}
-
-      {preview && (
-        <div className="preview-card">
-          {preview.thumbnail && <img className="preview-thumb" src={preview.thumbnail} alt="" />}
-          <div className="preview-meta">
-            <p className="preview-title">{preview.title || "Untitled"}</p>
-            <div className="preview-sub">
-              {preview.uploader ? `${preview.uploader} · ` : ""}
-              {preview.extractor || "unknown source"}
-              {preview.duration ? ` · ${formatDuration(preview.duration)}` : ""}
+          <div className="flex gap-3 items-center bg-ink-950 border border-ink-600 rounded-lg p-3">
+            {preview?.thumbnail && <img src={preview.thumbnail} alt="" className="w-24 h-14 object-cover rounded-md shrink-0" />}
+            <div className="min-w-0">
+              <p className="text-sm font-medium truncate">{preview?.title || "Untitled"}</p>
+              <p className="text-xs font-mono text-parchment-500">
+                {preview?.uploader ? `${preview.uploader} · ` : ""}
+                {preview?.extractor || "unknown source"}
+                {preview?.duration ? ` · ${formatDuration(preview.duration)}` : ""}
+              </p>
             </div>
           </div>
         </div>
@@ -158,26 +177,3 @@ export default function UrlForm({ onQueued }) {
     </div>
   );
 }
-
-function formatDuration(sec) {
-  sec = Math.round(sec);
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = sec % 60;
-  const pad = (n) => String(n).padStart(2, "0");
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
-}
-
-function formatBytes(bytes) {
-  if (!bytes) return "";
-  const units = ["B", "KB", "MB", "GB"];
-  let i = 0;
-  let n = bytes;
-  while (n >= 1024 && i < units.length - 1) {
-    n /= 1024;
-    i++;
-  }
-  return `${n.toFixed(1)} ${units[i]}`;
-}
-
-export { formatDuration };

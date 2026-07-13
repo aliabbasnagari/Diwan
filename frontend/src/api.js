@@ -1,48 +1,50 @@
-const BASE = "/api";
+import axios from "axios";
 
-async function handle(res) {
-  if (!res.ok) {
-    let detail = res.statusText;
-    try {
-      const body = await res.json();
-      detail = body.detail || JSON.stringify(body);
-    } catch (_) {
-      /* ignore */
-    }
+const client = axios.create({ baseURL: "/api" });
+
+function unwrap(promise) {
+  return promise.then((r) => r.data).catch((err) => {
+    const detail = err?.response?.data?.detail || err.message || "Request failed";
     throw new Error(detail);
-  }
-  return res.json();
+  });
 }
 
 export const api = {
-  preview: (url) =>
-    fetch(`${BASE}/preview`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-    }).then(handle),
+  // --- downloads / spooler ---
+  preview: (url) => unwrap(client.post("/preview", { url })),
+  createDownload: (payload) => unwrap(client.post("/downloads", payload)),
+  listDownloads: () => unwrap(client.get("/downloads")),
+  getDownload: (id) => unwrap(client.get(`/downloads/${id}`)),
+  cancelDownload: (id) => unwrap(client.post(`/downloads/${id}/cancel`)),
+  retryDownload: (id) => unwrap(client.post(`/downloads/${id}/retry`)),
+  deleteDownload: (id) => unwrap(client.delete(`/downloads/${id}`)),
+  fileUrl: (id) => `/api/downloads/${id}/file`,
+  downloadStats: () => unwrap(client.get("/stats")),
 
-  createDownload: (payload) =>
-    fetch(`${BASE}/downloads`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }).then(handle),
+  // --- library ---
+  libraryTree: () => unwrap(client.get("/library/tree")),
+  libraryTracks: (q) => unwrap(client.get("/library/tracks", { params: q ? { q } : {} })),
+  libraryStats: () => unwrap(client.get("/library/stats")),
+  getTrack: (id) => unwrap(client.get(`/library/tracks/${id}`)),
+  updateTrack: (id, patch) => unwrap(client.put(`/library/tracks/${id}`, patch)),
+  deleteTrack: (id) => unwrap(client.delete(`/library/tracks/${id}`)),
+  artworkUrl: (id) => `/api/library/tracks/${id}/artwork?_=${Date.now()}`,
+  uploadArtwork: (id, file) => {
+    const form = new FormData();
+    form.append("file", file);
+    return unwrap(client.post(`/library/tracks/${id}/artwork`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }));
+  },
+  organizeTrack: (id) => unwrap(client.post(`/library/tracks/${id}/organize`)),
+  organizeLibrary: (trackIds) => unwrap(client.post("/library/organize", { track_ids: trackIds || null })),
 
-  listDownloads: () => fetch(`${BASE}/downloads`).then(handle),
+  // --- settings ---
+  getSettings: () => unwrap(client.get("/settings")),
+  updateSettings: (patch) => unwrap(client.put("/settings", patch)),
+  testNavidrome: () => unwrap(client.post("/settings/navidrome/test")),
 
-  getDownload: (id) => fetch(`${BASE}/downloads/${id}`).then(handle),
-
-  cancelDownload: (id) =>
-    fetch(`${BASE}/downloads/${id}/cancel`, { method: "POST" }).then(handle),
-
-  retryDownload: (id) =>
-    fetch(`${BASE}/downloads/${id}/retry`, { method: "POST" }).then(handle),
-
-  deleteDownload: (id) =>
-    fetch(`${BASE}/downloads/${id}`, { method: "DELETE" }).then(handle),
-
-  fileUrl: (id) => `${BASE}/downloads/${id}/file`,
-
-  stats: () => fetch(`${BASE}/stats`).then(handle),
+  // --- navidrome ---
+  triggerScan: () => unwrap(client.post("/navidrome/scan")),
+  scanStatus: () => unwrap(client.get("/navidrome/scan/status")),
 };

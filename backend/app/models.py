@@ -13,6 +13,7 @@ class DownloadStatus(str, enum.Enum):
     FETCHING_INFO = "fetching_info"
     DOWNLOADING = "downloading"
     PROCESSING = "processing"
+    TAGGING = "tagging"
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"
@@ -34,29 +35,36 @@ class Download(Base):
     # --- request info ---
     url = Column(String, nullable=False, index=True)
     media_type = Column(SAEnum(MediaType), default=MediaType.VIDEO, nullable=False)
-    quality = Column(String, default="best")          # e.g. "best", "1080", "720", "audio only"
+    quality = Column(String, default="best")          # e.g. "best", "1080", "720"
     audio_format = Column(String, nullable=True)       # e.g. mp3, m4a (audio-only jobs)
     subtitles = Column(Boolean, default=False)
+
+    # --- library integration (audio jobs only) ---
+    add_to_library = Column(Boolean, default=False)
+    tag_artist = Column(String, nullable=True)     # user-supplied / overridden before download
+    tag_album = Column(String, nullable=True)
+    tag_title = Column(String, nullable=True)
 
     # --- status / progress ---
     status = Column(SAEnum(DownloadStatus), default=DownloadStatus.QUEUED, nullable=False, index=True)
     progress_percent = Column(Float, default=0.0)
-    speed = Column(String, nullable=True)      # human readable, e.g. "3.2MiB/s"
-    eta = Column(String, nullable=True)        # human readable, e.g. "00:12"
+    speed = Column(String, nullable=True)
+    eta = Column(String, nullable=True)
     error_message = Column(Text, nullable=True)
 
     # --- extracted metadata (populated once known) ---
     title = Column(String, nullable=True)
     uploader = Column(String, nullable=True)
-    extractor = Column(String, nullable=True)   # e.g. youtube, vimeo, twitter
-    duration = Column(Float, nullable=True)     # seconds
+    extractor = Column(String, nullable=True)
+    duration = Column(Float, nullable=True)
     thumbnail = Column(String, nullable=True)
     webpage_url = Column(String, nullable=True)
     view_count = Column(Integer, nullable=True)
-    upload_date = Column(String, nullable=True)  # YYYYMMDD from yt-dlp
+    upload_date = Column(String, nullable=True)
     ext = Column(String, nullable=True)
-    filesize = Column(Integer, nullable=True)     # bytes, final file size
-    filepath = Column(String, nullable=True)       # absolute path on disk
+    filesize = Column(Integer, nullable=True)
+    filepath = Column(String, nullable=True)          # final location on disk (library or downloads dir)
+    library_path = Column(String, nullable=True)       # relative path within LIBRARY_DIR, if added to library
 
     # --- timestamps ---
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -71,6 +79,10 @@ class Download(Base):
             "quality": self.quality,
             "audio_format": self.audio_format,
             "subtitles": self.subtitles,
+            "add_to_library": self.add_to_library,
+            "tag_artist": self.tag_artist,
+            "tag_album": self.tag_album,
+            "tag_title": self.tag_title,
             "status": self.status.value if self.status else None,
             "progress_percent": round(self.progress_percent or 0, 1),
             "speed": self.speed,
@@ -87,7 +99,39 @@ class Download(Base):
             "ext": self.ext,
             "filesize": self.filesize,
             "filepath": self.filepath,
+            "library_path": self.library_path,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
         }
+
+
+class AppSettings(Base):
+    """Single-row table of user-editable runtime settings."""
+
+    __tablename__ = "app_settings"
+
+    id = Column(Integer, primary_key=True, default=1)
+
+    download_dir = Column(String, nullable=False)
+    library_dir = Column(String, nullable=False)
+    max_concurrent_downloads = Column(Integer, default=2)
+
+    navidrome_url = Column(String, nullable=True)
+    navidrome_username = Column(String, nullable=True)
+    navidrome_password = Column(String, nullable=True)
+    navidrome_auto_scan = Column(Boolean, default=False)
+
+    def to_dict(self, include_secrets: bool = False):
+        d = {
+            "download_dir": self.download_dir,
+            "library_dir": self.library_dir,
+            "max_concurrent_downloads": self.max_concurrent_downloads,
+            "navidrome_url": self.navidrome_url,
+            "navidrome_username": self.navidrome_username,
+            "navidrome_auto_scan": self.navidrome_auto_scan,
+            "navidrome_password_set": bool(self.navidrome_password),
+        }
+        if include_secrets:
+            d["navidrome_password"] = self.navidrome_password
+        return d

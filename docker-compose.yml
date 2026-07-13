@@ -2,14 +2,22 @@ services:
   backend:
     build:
       context: ./backend
-    container_name: spooler-backend
+    container_name: crate-backend
     restart: unless-stopped
     environment:
       DOWNLOAD_DIR: /data/downloads
+      LIBRARY_DIR: /music
       DB_PATH: /data/downloader.db
       MAX_CONCURRENT_DOWNLOADS: "2"
     volumes:
-      - spooler-data:/data
+      - crate-data:/data
+      # This should be the SAME folder your Navidrome instance scans, so
+      # anything Crate downloads/organizes shows up in Navidrome. Easiest
+      # way: point both at one host folder. Swap the line below for e.g.
+      #   - /home/you/music:/music
+      # to bind-mount your existing collection instead of using a fresh
+      # named volume.
+      - crate-music:/music
     ports:
       # exposed mainly for direct API access / debugging; the frontend
       # talks to the backend over the internal docker network instead
@@ -24,7 +32,7 @@ services:
   frontend:
     build:
       context: ./frontend
-    container_name: spooler-frontend
+    container_name: crate-frontend
     restart: unless-stopped
     depends_on:
       backend:
@@ -32,6 +40,24 @@ services:
     ports:
       - "8080:80"
 
+  # Optional: uncomment to run Navidrome itself alongside Crate, sharing
+  # the same music volume, so the whole stack comes up with one command.
+  # navidrome:
+  #   image: deluan/navidrome:latest
+  #   container_name: navidrome
+  #   restart: unless-stopped
+  #   ports:
+  #     - "4533:4533"
+  #   environment:
+  #     ND_SCANSCHEDULE: "1h"
+  #   volumes:
+  #     - navidrome-data:/data
+  #     - crate-music:/music:ro
+
 volumes:
-  spooler-data:
-    name: spooler-data
+  crate-data:
+    name: crate-data
+  crate-music:
+    name: crate-music
+  # navidrome-data:
+  #   name: navidrome-data

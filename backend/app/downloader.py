@@ -1,14 +1,16 @@
+import asyncio
 import queue
 import threading
-import time
 from datetime import datetime
 from pathlib import Path
 
 import yt_dlp
 
-from .config import DOWNLOAD_DIR, MAX_CONCURRENT_DOWNLOADS
 from .database import SessionLocal
 from .models import Download, DownloadStatus
+from . import settings_service, navidrome
+from .library import metadata as tag_metadata
+from .library import organizer
 
 # In-memory queue of download IDs waiting to be processed.
 _job_queue: "queue.Queue[int]" = queue.Queue()
@@ -26,7 +28,12 @@ def start_workers():
         if _workers_started:
             return
         _workers_started = True
-        for _ in range(MAX_CONCURRENT_DOWNLOADS):
+        db = SessionLocal()
+        try:
+            n = settings_service.get_settings(db).max_concurrent_downloads or 2
+        finally:
+            db.close()
+        for _ in range(n):
             t = threading.Thread(target=_worker_loop, daemon=True)
             t.start()
 
@@ -78,40 +85,27 @@ def _simplify_info(info: dict) -> dict:
             "fps": f.get("fps"),
         })
 
-        # Track the best (largest filesize) format seen at each real height
-        # so the quality dropdown reflects resolutions this video actually has.
         height = f.get("height")
         if height and vcodec != "none":
             size = f.get("filesize") or f.get("filesize_approx") or 0
             existing = heights_seen.get(height)
             if existing is None or size > existing["filesize"]:
-                heights_seen[height] = {
-                    "height": height,
-                    "fps": f.get("fps"),
-                    "filesize": size,
-                }
+                heights_seen[height] = {"height": height, "fps": f.get("fps"), "filesize": size}
 
-    video_qualities = [
-        {
-            "value": "best",
-            "label": "Best available",
-            "filesize": None,
-        }
-    ]
+    video_qualities = [{"value": "best", "label": "Best available", "filesize": None}]
     for height in sorted(heights_seen.keys(), reverse=True):
         meta = heights_seen[height]
         label = f"{height}p"
         if meta.get("fps") and meta["fps"] > 30:
             label += f" {int(meta['fps'])}fps"
-        video_qualities.append({
-            "value": str(height),
-            "label": label,
-            "filesize": meta["filesize"] or None,
-        })
+        video_qualities.append({"value": str(height), "label": label, "filesize": meta["filesize"] or None})
 
     return {
         "title": info.get("title"),
         "uploader": info.get("uploader") or info.get("channel"),
+        "artist": info.get("artist") or info.get("uploader") or info.get("channel"),
+        "track": info.get("track") or info.get("title"),
+        "album": info.get("album"),
         "extractor": info.get("extractor_key") or info.get("extractor"),
         "duration": info.get("duration"),
         "thumbnail": info.get("thumbnail"),
@@ -164,12 +158,28 @@ def _process_download(download_id: int):
         quality = row.quality
         audio_format = row.audio_format
         subtitles = row.subtitles
+        add_to_library = row.add_to_library
+        tag_artist = row.tag_artist
+        tag_album = row.tag_album
+        tag_title = row.tag_title
+
+        s = settings_service.get_settings(db)
+        download_dir = Path(s.library_dir if (media_type == "audio" and add_to_library) else s.download_dir)
+        library_dir = Path(s.library_dir)
+        navidrome_url = s.navidrome_url
+        navidrome_username = s.navidrome_username
+        navidrome_password = s.navidrome_password
+        navidrome_auto_scan = s.navidrome_auto_scan
+        download_dir.mkdir(parents=True, exist_ok=True)
     finally:
         db.close()
 
     _active_downloads[download_id] = {"cancelled": False}
 
-    outtmpl = str(DOWNLOAD_DIR / "%(title).150B [%(id)s].%(ext)s")
+    # Download to a temp/staging area first; library placement (if any)
+    # happens after tagging, once we know the final artist/album/title.
+    staging_dir = download_dir
+    outtmpl = str(staging_dir / "%(title).150B [%(id)s].%(ext)s")
 
     def progress_hook(d):
         if _active_downloads.get(download_id, {}).get("cancelled"):
@@ -179,21 +189,9 @@ def _process_download(download_id: int):
             total = d.get("total_bytes") or d.get("total_bytes_estimate")
             downloaded = d.get("downloaded_bytes") or 0
             percent = (downloaded / total * 100) if total else 0.0
-            _update_progress(
-                download_id,
-                status=DownloadStatus.DOWNLOADING,
-                progress_percent=percent,
-                speed=_fmt_speed(d.get("speed")),
-                eta=_fmt_eta(d.get("eta")),
-            )
+            _update_progress(download_id, DownloadStatus.DOWNLOADING, percent, _fmt_speed(d.get("speed")), _fmt_eta(d.get("eta")))
         elif d.get("status") == "finished":
-            _update_progress(
-                download_id,
-                status=DownloadStatus.PROCESSING,
-                progress_percent=99.0,
-                speed=None,
-                eta=None,
-            )
+            _update_progress(download_id, DownloadStatus.PROCESSING, 99.0, None, None)
 
     format_selector = _build_format_selector(media_type, quality)
 
@@ -207,13 +205,11 @@ def _process_download(download_id: int):
         "writesubtitles": subtitles,
         "writeautomaticsub": subtitles,
         "subtitleslangs": ["en"] if subtitles else None,
-        "merge_output_format": "mp4" if media_type == "video" else None
+        "merge_output_format": "mp4" if media_type == "video" else None,
+        "writethumbnail": media_type == "audio",
     }
 
     if media_type == "audio":
-        # "0" = best quality for lossy codecs (e.g. highest VBR for mp3/opus);
-        # ignored by yt-dlp for inherently lossless targets like wav/flac,
-        # which are always encoded lossless from the best source audio track.
         ydl_opts["postprocessors"] = [{
             "key": "FFmpegExtractAudio",
             "preferredcodec": audio_format or "mp3",
@@ -223,9 +219,9 @@ def _process_download(download_id: int):
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
-            filepath = ydl.prepare_filename(info)
+            filepath = Path(ydl.prepare_filename(info))
             if media_type == "audio":
-                filepath = str(Path(filepath).with_suffix(f".{audio_format or 'mp3'}"))
+                filepath = filepath.with_suffix(f".{audio_format or 'mp3'}")
     except yt_dlp.utils.DownloadCancelled:
         db = SessionLocal()
         try:
@@ -239,6 +235,38 @@ def _process_download(download_id: int):
         return
 
     simplified = _simplify_info(info)
+    library_path_str = None
+
+    if media_type == "audio" and add_to_library:
+        _update_progress(download_id, DownloadStatus.TAGGING, 99.0, None, None)
+        final_artist = tag_artist or simplified.get("artist") or "Unknown Artist"
+        final_album = tag_album or simplified.get("album") or "Singles"
+        final_title = tag_title or simplified.get("track") or simplified.get("title") or filepath.stem
+
+        try:
+            thumb_bytes = _find_thumbnail_bytes(filepath)
+            if thumb_bytes:
+                tag_metadata.write_art(filepath, thumb_bytes)
+            tag_metadata.write_tags(filepath, {
+                "title": final_title,
+                "artist": final_artist,
+                "album": final_album,
+            })
+        except Exception:
+            pass  # tagging is best-effort; keep the file even if it fails
+
+        filepath = organizer.move_into_library(filepath, library_dir, final_artist, final_album, final_title)
+        library_path_str = organizer.relative_to_library(filepath, library_dir)
+        _cleanup_leftover_thumbnails(filepath)
+
+        if navidrome_auto_scan and navidrome_url:
+            try:
+                asyncio.run(navidrome.start_scan(navidrome_url, navidrome_username or "", navidrome_password or ""))
+            except Exception:
+                pass  # scan trigger is best-effort and shouldn't fail the download
+    elif media_type == "audio":
+        _cleanup_leftover_thumbnails(filepath)
+
     file_path_obj = Path(filepath)
     filesize = file_path_obj.stat().st_size if file_path_obj.exists() else None
 
@@ -261,10 +289,30 @@ def _process_download(download_id: int):
             row.ext = file_path_obj.suffix.lstrip(".")
             row.filesize = filesize
             row.filepath = str(file_path_obj)
+            row.library_path = library_path_str
             row.completed_at = datetime.utcnow()
             db.commit()
     finally:
         db.close()
+
+
+def _find_thumbnail_bytes(media_path: Path) -> bytes | None:
+    for ext in (".jpg", ".jpeg", ".png", ".webp"):
+        candidate = media_path.with_suffix(ext)
+        if candidate.exists():
+            data = candidate.read_bytes()
+            return data
+    return None
+
+
+def _cleanup_leftover_thumbnails(media_path: Path):
+    for ext in (".jpg", ".jpeg", ".png", ".webp"):
+        candidate = media_path.with_suffix(ext)
+        if candidate.exists() and candidate != media_path:
+            try:
+                candidate.unlink()
+            except OSError:
+                pass
 
 
 def _build_format_selector(media_type: str, quality: str) -> str:
@@ -272,7 +320,6 @@ def _build_format_selector(media_type: str, quality: str) -> str:
         return "bestaudio/best"
     if quality == "best" or not quality:
         return "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
-    # quality is a height like "1080", "720"
     return (
         f"bestvideo[height<={quality}][ext=mp4]+bestaudio[ext=m4a]"
         f"/best[height<={quality}][ext=mp4]/best[height<={quality}]/best"

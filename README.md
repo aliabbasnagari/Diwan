@@ -1,49 +1,106 @@
-# Spooler — media downloader
+# Crate — a library manager for Navidrome
 
-A self-hosted downloader built on **yt-dlp**, with a FastAPI backend, SQLite
-history/metadata store, and a React frontend.
+A self-hosted web app that helps you build, tag, and organize a music
+library for **[Navidrome](https://www.navidrome.org/)**. It has two halves
+that work together:
 
-Supports any site yt-dlp supports (YouTube, Vimeo, Twitter/X, SoundCloud,
-TikTok, Twitch clips, and hundreds more). Note that downloading content you
-don't have the rights to may violate a site's terms of service or copyright
-law — this tool doesn't judge, that's on you.
+- **Library** — browse your existing collection by artist/album, edit
+  ID3/Vorbis/FLAC/MP4 tags, replace album art, and keep files organized
+  into a clean `Artist/Album/NN - Title.ext` structure.
+- **Spooler** — pull new tracks in from YouTube, SoundCloud, Bandcamp, and
+  hundreds of other sites via yt-dlp, with an option to auto-tag and drop
+  them straight into the library, then trigger a Navidrome rescan.
+
+Note: downloading content you don't have the rights to may violate a
+site's terms of service or copyright law — this tool doesn't judge, that's
+on you.
 
 ## Features
 
-- Paste a URL, preview title/thumbnail/duration before committing
-- Download full video (choose quality up to 4K) or extract audio only
-  (mp3/m4a/opus/wav/flac)
-- Optional English subtitles
-- Background job queue (2 concurrent downloads by default) with live
-  progress, speed, and ETA
-- Every job — queued, running, finished, or failed — is persisted to SQLite,
-  so history survives restarts
-- Cancel in-flight downloads, retry failed ones, delete history entries
-  (and their files)
-- Stats bar: active / completed / failed counts
+- **Library browser** — artist → album → track tree, full-text search,
+  per-track duration/bitrate/size
+- **Tag editor** — title, artist, album, album artist, genre, year, track
+  and disc number, read/written with Mutagen across mp3/flac/m4a/ogg/opus
+- **Album art** — view embedded art, upload a replacement (resized to a
+  sane max dimension and re-encoded with Pillow before embedding)
+- **Auto-organize** — editing tags can move the file to match; a
+  library-wide "Organize all" pass tidies anything dropped in loose
+- **Spooler** — Fetch a URL to see real available qualities pulled live
+  from yt-dlp, then Download; video (up to whatever resolutions the source
+  actually has) or audio-only (mp3/m4a/opus/wav/flac, always extracted at
+  the best quality via ffmpeg)
+- **Add to library** — audio downloads can be auto-tagged (from the
+  source's metadata, or your own artist/album/title overrides), embedded
+  with the source thumbnail as cover art, and moved into the library in
+  one step
+- **Navidrome integration** — test the connection, trigger a scan on
+  demand, or have one fire automatically after every library addition
+  (Subsonic API, so no Navidrome-side config needed beyond a username/
+  password it already has)
+- Every download is persisted to SQLite — queue, progress, and full
+  history survive restarts
+
+## Stack
+
+| Backend | Purpose |
+|---|---|
+| FastAPI + Uvicorn | REST API |
+| yt-dlp | Downloading from YouTube, SoundCloud, Bandcamp, etc. |
+| Mutagen | Read/write audio tags (ID3, Vorbis, FLAC, MP4) |
+| Pillow | Album art resize/convert before embedding |
+| SQLAlchemy + SQLite | Download queue, job history, app settings |
+| Pydantic | Request/response validation |
+| httpx | Talks to Navidrome's Subsonic API |
+
+| Frontend | Purpose |
+|---|---|
+| React + Vite | UI |
+| Tailwind CSS | Styling |
+| React Router | Library / Spooler / Settings pages |
+| Axios | HTTP client |
+| TanStack Query | Server state, caching, polling |
+| Sonner | Toast notifications |
+| Lucide React | Icons |
 
 ## Project layout
 
 ```
 backend/
   app/
-    main.py         FastAPI routes
-    downloader.py    yt-dlp wrapper + background worker queue
-    models.py        SQLAlchemy models (Download table = history + metadata)
-    database.py      SQLite engine/session setup
-    schemas.py        Pydantic request models
-    config.py          paths, CORS, concurrency
+    main.py               FastAPI app, mounts routers, download endpoints
+    routes_library.py      /api/library/* — browse, tag, art, organize
+    routes_settings.py      /api/settings/*
+    routes_navidrome.py      /api/navidrome/* — scan trigger/status
+    downloader.py             yt-dlp worker queue: fetch, tag, organize, scan
+    navidrome.py                Subsonic API client (ping/scan/status)
+    settings_service.py          reads/writes the AppSettings DB row
+    models.py                     Download + AppSettings SQLAlchemy models
+    schemas.py                     Pydantic request models
+    database.py                     SQLite engine/session
+    config.py                        env-var bootstrap defaults
+    library/
+      scanner.py             walks the library dir, builds the artist/album/track tree
+      metadata.py              Mutagen tag + album-art read/write
+      organizer.py               sanitizes paths, moves files into place
   requirements.txt
-  run.py               dev entrypoint
+  run.py
   Dockerfile
 frontend/
   src/
-    App.jsx                  layout, polling, active/history split
-    api.js                     fetch wrapper for the backend
-    components/UrlForm.jsx     URL input, preview, format/quality options
-    components/TrackCard.jsx    one row: thumbnail, VU-meter progress, actions
-    index.css                    theme (tape-deck / mixing-console look)
-  vite.config.js         dev server + /api proxy to the backend
+    App.jsx                   sidebar layout + routes
+    api.js                      axios client for every endpoint
+    pages/
+      LibraryPage.jsx            search, artist/album tree, organize-all
+      SpoolerPage.jsx              queue + history
+      SettingsPage.jsx               paths, concurrency, Navidrome
+    components/
+      TrackEditDrawer.jsx        tag form, artwork upload, delete/organize
+      UrlForm.jsx                  fetch → download flow, library options
+      DownloadCard.jsx              queue/history row, segmented progress
+      AlbumArt.jsx                   album thumbnail
+      Sidebar.jsx
+  tailwind.config.js
+  vite.config.js              dev server + /api proxy to the backend
   Dockerfile
   nginx.conf
 docker-compose.yml
@@ -55,46 +112,38 @@ docker-compose.yml
 docker compose up --build
 ```
 
-Then open http://localhost:8080. The backend API is also reachable
-directly at http://localhost:8000 if you want to hit it yourself.
+Then open http://localhost:8080. The API is also reachable directly at
+http://localhost:8000.
 
-This builds two images and runs them together:
+Two named volumes are created:
 
-- `backend` - Python + ffmpeg + yt-dlp, serving the API on :8000
-- `frontend` - a Vite production build served by nginx on :80 (mapped to
-  host :8080), which proxies `/api/*` requests straight to the backend
-  container over the internal Docker network (see `frontend/nginx.conf`) -
-  no CORS setup needed
+- `crate-data` — SQLite DB + the download staging area
+- `crate-music` — the library itself
 
-The SQLite database and downloaded files live in a named volume
-(`spooler-data`, mounted at `/data` in the backend container), so your
-history and files survive `docker compose down` / restarts. To wipe
-everything: `docker compose down -v`.
+**Point `crate-music` at wherever Navidrome reads its music from.** If
+Navidrome runs elsewhere on the same host, edit the `crate-music` volume
+line in `docker-compose.yml` to a bind mount of that same folder, e.g.:
+
+```yaml
+    volumes:
+      - crate-data:/data
+      - /home/you/music:/music
+```
+
+There's also a commented-out `navidrome` service in `docker-compose.yml`
+if you'd rather run Navidrome itself as part of the same stack, sharing
+the `crate-music` volume — uncomment it and you're set.
 
 To run in the background: `docker compose up --build -d`, then
-`docker compose logs -f` to tail logs.
-
-### Docker files
-
-```
-backend/Dockerfile        Python 3.12-slim + ffmpeg + yt-dlp, runs uvicorn
-backend/.dockerignore
-frontend/Dockerfile        multi-stage: npm build then nginx:alpine to serve it
-frontend/nginx.conf        SPA fallback + /api proxy to the backend service
-frontend/.dockerignore
-docker-compose.yml         wires both services + the persistent data volume
-```
+`docker compose logs -f`.
 
 ## Run it without Docker
 
-## Requirements
+### Requirements
 
 - Python 3.10+
 - Node.js 18+
-- **ffmpeg** installed and on your `PATH` (required by yt-dlp for merging
-  video+audio and for audio extraction)
-
-## Setup
+- **ffmpeg** on your `PATH` (yt-dlp needs it for merging/extracting audio)
 
 ### Backend
 
@@ -106,8 +155,10 @@ pip install -r requirements.txt
 python run.py                    # http://127.0.0.1:8000
 ```
 
-This creates `backend/downloader.db` (SQLite) and `backend/downloads/`
-(saved media files) on first run.
+Creates `backend/downloader.db`, `backend/downloads/` (staging), and
+`backend/library/` (the music library) on first run. Override any of
+these with the `DOWNLOAD_DIR` / `LIBRARY_DIR` / `DB_PATH` env vars, or
+just change the paths later from the Settings page.
 
 ### Frontend
 
@@ -117,8 +168,8 @@ npm install
 npm run dev                      # http://127.0.0.1:5173
 ```
 
-The Vite dev server proxies `/api/*` to `http://127.0.0.1:8000`, so just
-open the frontend URL — no CORS config needed in dev.
+Vite proxies `/api/*` to `http://127.0.0.1:8000` in dev, so no CORS setup
+needed.
 
 ### Production build
 
@@ -127,40 +178,71 @@ cd frontend
 npm run build                    # outputs frontend/dist
 ```
 
-Serve `frontend/dist` with any static file server (nginx, Caddy, etc.) and
-point it at the backend, or add a route in `main.py` to serve it directly.
+## Configuring Navidrome
 
-## Configuration
+In the app's **Settings** page:
 
-Environment variables (all optional, read in `backend/app/config.py`):
-
-| Variable                  | Default              | Purpose                          |
-|----------------------------|-----------------------|-----------------------------------|
-| `DOWNLOAD_DIR`             | `backend/downloads`   | Where finished files are saved   |
-| `DB_PATH`                  | `backend/downloader.db` | SQLite file location           |
-| `MAX_CONCURRENT_DOWNLOADS` | `2`                    | Worker thread pool size          |
+1. Set **Library directory** to the same folder your Navidrome server
+   scans.
+2. Enter your Navidrome **server URL**, **username**, and **password** —
+   the same login you use in Navidrome's own web UI (auth goes through
+   the Subsonic API, so no separate API key is needed).
+3. **Test connection** to confirm it's reachable.
+4. Optionally enable **auto-scan**, so Navidrome picks up new tracks the
+   moment Crate adds them, without waiting for its own scan schedule.
 
 ## API summary
 
-| Method & path                          | Purpose                             |
-|-----------------------------------------|---------------------------------------|
-| `POST /api/preview`                     | Fetch metadata for a URL, no download |
-| `POST /api/downloads`                   | Queue a new download job              |
-| `GET /api/downloads`                    | List all jobs (history + active)      |
-| `GET /api/downloads/{id}`               | Get one job's current state           |
-| `POST /api/downloads/{id}/cancel`       | Cancel an in-flight job                |
-| `POST /api/downloads/{id}/retry`        | Re-queue a failed/cancelled job         |
-| `DELETE /api/downloads/{id}`            | Delete a job + its file                 |
-| `GET /api/downloads/{id}/file`          | Download the finished file              |
-| `GET /api/stats`                        | Counts for the header stat bar          |
+**Downloads / spooler**
+| Method & path | Purpose |
+|---|---|
+| `POST /api/preview` | Fetch metadata + real available formats for a URL |
+| `POST /api/downloads` | Queue a download (optionally: tag + add to library) |
+| `GET /api/downloads` | List all jobs |
+| `GET /api/downloads/{id}` | One job's current state |
+| `POST /api/downloads/{id}/cancel` | Cancel an in-flight job |
+| `POST /api/downloads/{id}/retry` | Re-queue a failed/cancelled job |
+| `DELETE /api/downloads/{id}` | Delete a job + its file |
+| `GET /api/downloads/{id}/file` | Download the finished file |
+| `GET /api/stats` | Header stat counts |
 
-## Notes on the SQLite schema
+**Library**
+| Method & path | Purpose |
+|---|---|
+| `GET /api/library/tree` | Artist → album → track tree |
+| `GET /api/library/tracks?q=` | Flat list, or search |
+| `GET /api/library/stats` | Artist/album/track counts, total size |
+| `GET /api/library/tracks/{id}` | One track's tags |
+| `PUT /api/library/tracks/{id}` | Update tags (optionally reorganize the file) |
+| `DELETE /api/library/tracks/{id}` | Delete the file |
+| `GET /api/library/tracks/{id}/artwork` | Embedded cover art |
+| `POST /api/library/tracks/{id}/artwork` | Replace cover art (multipart upload) |
+| `POST /api/library/tracks/{id}/organize` | Move one track to match its tags |
+| `POST /api/library/organize` | Bulk-organize the whole library (or a track id list) |
 
-Everything lives in one `downloads` table (see `backend/app/models.py`) so
-the history view and the live-progress view are the same data — a row is
-created the moment a URL is queued and updated in place through
-`queued → fetching_info → downloading → processing → completed/failed`.
-Stored per row: request params (url, media type, quality, subtitle flag),
-live progress (percent, speed, eta), extracted metadata (title, uploader,
-extractor, duration, thumbnail, upload date, view count), and the result
-(file path, extension, size, timestamps, error message if it failed).
+**Settings / Navidrome**
+| Method & path | Purpose |
+|---|---|
+| `GET /api/settings` | Current settings (password never returned, just a flag) |
+| `PUT /api/settings` | Update paths, concurrency, Navidrome credentials |
+| `POST /api/settings/navidrome/test` | Ping Navidrome, return its version |
+| `POST /api/navidrome/scan` | Trigger a library scan |
+| `GET /api/navidrome/scan/status` | Poll scan progress |
+
+## Notes on the data model
+
+Everything lives in two tables. `downloads` is both the live job queue and
+the permanent history — one row per URL, updated in place through
+`queued → fetching_info → downloading → processing → tagging →
+completed/failed`, storing the request params, live progress, extracted
+metadata, and (if added to the library) the final relative path.
+`app_settings` is a single-row table holding the editable paths, worker
+concurrency, and Navidrome credentials.
+
+The library itself isn't cached in the database — `/api/library/*`
+scans the filesystem directly with Mutagen on every request (track ids
+are just base64-encoded relative paths), so it's always accurate and
+there's nothing to keep in sync after files are edited outside the app.
+For very large libraries this means list/search calls do real disk I/O
+each time; fine for a personal collection, worth knowing if you're
+pointing it at tens of thousands of files.
