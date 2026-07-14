@@ -110,13 +110,25 @@ def read_art(path: Path) -> Optional[bytes]:
     return None
 
 
-def write_art(path: Path, image_bytes: bytes) -> None:
-    """Resize/convert to JPEG and embed as the sole cover image."""
+def _resize_to_jpeg(image_bytes: bytes) -> bytes:
     img = Image.open(BytesIO(image_bytes)).convert("RGB")
     img.thumbnail((ALBUM_ART_MAX_SIZE, ALBUM_ART_MAX_SIZE))
     buf = BytesIO()
     img.save(buf, format="JPEG", quality=90)
-    jpeg_bytes = buf.getvalue()
+    return buf.getvalue()
+
+
+def write_image_file(path: Path, image_bytes: bytes) -> None:
+    """Resize/convert to JPEG and write as a standalone file — used for
+    album folder covers (cover.jpg) and artist pictures, as opposed to
+    write_art() which embeds into a specific track's file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(_resize_to_jpeg(image_bytes))
+
+
+def write_art(path: Path, image_bytes: bytes) -> None:
+    """Resize/convert to JPEG and embed as the sole cover image."""
+    jpeg_bytes = _resize_to_jpeg(image_bytes)
 
     ext = path.suffix.lower()
     if ext == ".mp3":

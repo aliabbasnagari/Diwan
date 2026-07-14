@@ -23,6 +23,7 @@ class DownloadCreateRequest(BaseModel):
 class SettingsUpdateRequest(BaseModel):
     download_dir: Optional[str] = None
     library_dir: Optional[str] = None
+    artist_image_dir: Optional[str] = None
     max_concurrent_downloads: Optional[int] = None
     navidrome_url: Optional[str] = None
     navidrome_username: Optional[str] = None

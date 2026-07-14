@@ -21,23 +21,45 @@ export const api = {
   fileUrl: (id) => `/api/downloads/${id}/file`,
   downloadStats: () => unwrap(client.get("/stats")),
 
-  // --- library ---
+  // --- library: tracks ---
   libraryTree: () => unwrap(client.get("/library/tree")),
   libraryTracks: (q) => unwrap(client.get("/library/tracks", { params: q ? { q } : {} })),
   libraryStats: () => unwrap(client.get("/library/stats")),
   getTrack: (id) => unwrap(client.get(`/library/tracks/${id}`)),
   updateTrack: (id, patch) => unwrap(client.put(`/library/tracks/${id}`, patch)),
   deleteTrack: (id) => unwrap(client.delete(`/library/tracks/${id}`)),
-  artworkUrl: (id) => `/api/library/tracks/${id}/artwork?_=${Date.now()}`,
-  uploadArtwork: (id, file) => {
+  organizeTrack: (id) => unwrap(client.post(`/library/tracks/${id}/organize`)),
+  organizeLibrary: (trackIds) => unwrap(client.post("/library/organize", { track_ids: trackIds || null })),
+
+  // --- library: track-level art (embedded in that one file only) ---
+  trackArtworkUrl: (id) => `/api/library/tracks/${id}/artwork?_=${Date.now()}`,
+  uploadTrackArtwork: (id, file) => {
     const form = new FormData();
     form.append("file", file);
     return unwrap(client.post(`/library/tracks/${id}/artwork`, form, {
       headers: { "Content-Type": "multipart/form-data" },
     }));
   },
-  organizeTrack: (id) => unwrap(client.post(`/library/tracks/${id}/organize`)),
-  organizeLibrary: (trackIds) => unwrap(client.post("/library/organize", { track_ids: trackIds || null })),
+
+  // --- library: album-level art (cover.jpg in the folder + embedded in every track) ---
+  albumArtworkUrl: (albumId) => `/api/library/albums/${albumId}/artwork?_=${Date.now()}`,
+  uploadAlbumArtwork: (albumId, file) => {
+    const form = new FormData();
+    form.append("file", file);
+    return unwrap(client.post(`/library/albums/${albumId}/artwork`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }));
+  },
+
+  // --- library: artist pictures (saved to a dedicated folder for Navidrome's ArtistImageFolder) ---
+  artistPictureUrl: (artistId) => `/api/library/artists/${artistId}/picture?_=${Date.now()}`,
+  uploadArtistPicture: (artistId, file) => {
+    const form = new FormData();
+    form.append("file", file);
+    return unwrap(client.post(`/library/artists/${artistId}/picture`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }));
+  },
 
   // --- settings ---
   getSettings: () => unwrap(client.get("/settings")),
@@ -47,4 +69,22 @@ export const api = {
   // --- navidrome ---
   triggerScan: () => unwrap(client.post("/navidrome/scan")),
   scanStatus: () => unwrap(client.get("/navidrome/scan/status")),
+
+  // --- convert ---
+  convertFormats: () => unwrap(client.get("/convert/formats")),
+  listConversions: () => unwrap(client.get("/convert/jobs")),
+  getConversion: (id) => unwrap(client.get(`/convert/jobs/${id}`)),
+  createConversion: (fields) => {
+    const form = new FormData();
+    Object.entries(fields).forEach(([k, v]) => {
+      if (v !== null && v !== undefined) form.append(k, v);
+    });
+    return unwrap(client.post("/convert/jobs", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }));
+  },
+  cancelConversion: (id) => unwrap(client.post(`/convert/jobs/${id}/cancel`)),
+  deleteConversion: (id) => unwrap(client.delete(`/convert/jobs/${id}`)),
+  conversionFileUrl: (id) => `/api/convert/jobs/${id}/file`,
+  conversionStats: () => unwrap(client.get("/convert/stats")),
 };

@@ -3,6 +3,7 @@ backend/.venv/
 backend/downloader.db
 backend/downloads/
 backend/library/
+backend/conversions/
 backend/__pycache__/
 backend/app/__pycache__/
 frontend/node_modules/

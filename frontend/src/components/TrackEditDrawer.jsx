@@ -73,9 +73,9 @@ export default function TrackEditDrawer({ track, onClose }) {
   });
 
   const artworkMutation = useMutation({
-    mutationFn: (file) => api.uploadArtwork(track.id, file),
+    mutationFn: (file) => api.uploadTrackArtwork(track.id, file),
     onSuccess: () => {
-      toast.success("Artwork updated");
+      toast.success("Track art updated");
       invalidate();
     },
     onError: (e) => toast.error(e.message),
@@ -98,9 +98,9 @@ export default function TrackEditDrawer({ track, onClose }) {
           <div className="flex items-center gap-4">
             <div
               className="w-20 h-20 rounded-lg bg-ink-950 ring-1 ring-black/40 bg-cover bg-center shrink-0 cursor-pointer relative group"
-              style={track.has_art ? { backgroundImage: `url(${api.artworkUrl(track.id)})` } : {}}
+              style={track.has_art ? { backgroundImage: `url(${api.trackArtworkUrl(track.id)})` } : {}}
               onClick={() => fileInputRef.current?.click()}
-              title="Click to replace artwork"
+              title="Click to replace this track's embedded art"
             >
               {!track.has_art && (
                 <div className="w-full h-full flex items-center justify-center text-parchment-700 font-display text-lg">♪</div>
@@ -121,10 +121,15 @@ export default function TrackEditDrawer({ track, onClose }) {
               }}
             />
             <div className="text-xs font-mono text-parchment-500 space-y-1 min-w-0">
+              <p className="label-eyebrow !text-parchment-500">Track art</p>
               <p className="truncate" title={track.path}>{track.path}</p>
               <p>{formatDuration(track.duration)} · {formatBytes(track.filesize)} · {track.ext?.toUpperCase()}</p>
             </div>
           </div>
+
+          <p className="text-[11px] text-parchment-700 -mt-3">
+            This image is embedded in this file only. To set shared cover art for the whole album, use "Upload album art" from the album header in the Library view.
+          </p>
 
           <div className="grid grid-cols-2 gap-3">
             {FIELDS.map((f) => (

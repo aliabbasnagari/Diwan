@@ -1,9 +1,10 @@
 import { NavLink } from "react-router-dom";
-import { Disc3, Library, DownloadCloud, Settings } from "lucide-react";
+import { Disc3, Library, DownloadCloud, Settings, RefreshCcw } from "lucide-react";
 
 const links = [
   { to: "/", label: "Library", icon: Library, end: true },
   { to: "/spooler", label: "Spooler", icon: DownloadCloud },
+  { to: "/convert", label: "Convert", icon: RefreshCcw },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 

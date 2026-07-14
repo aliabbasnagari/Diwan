@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, RefreshCw, FolderTree, ChevronDown, ChevronRight, Music2 } from "lucide-react";
+import { Search, RefreshCw, FolderTree, ChevronDown, ChevronRight, Music2, ImagePlus, User } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../api.js";
 import { formatDuration, formatBytes } from "../utils.js";
@@ -31,8 +31,7 @@ export default function LibraryPage() {
     mutationFn: () => api.organizeLibrary(),
     onSuccess: (res) => {
       toast.success(`Organized: ${res.moved} moved, ${res.unchanged} already tidy${res.errors.length ? `, ${res.errors.length} errors` : ""}`);
-      qc.invalidateQueries({ queryKey: ["library-tree"] });
-      qc.invalidateQueries({ queryKey: ["library-search"] });
+      refresh();
     },
     onError: (e) => toast.error(e.message),
   });
@@ -102,6 +101,7 @@ export default function LibraryPage() {
           openArtists={openArtists}
           onToggleArtist={toggleArtist}
           onOpenTrack={setActiveTrack}
+          onChanged={refresh}
         />
       )}
 
@@ -131,7 +131,7 @@ function SearchResults({ data, loading, onOpen }) {
   );
 }
 
-function ArtistTree({ tree, loading, openArtists, onToggleArtist, onOpenTrack }) {
+function ArtistTree({ tree, loading, openArtists, onToggleArtist, onOpenTrack, onChanged }) {
   if (loading) return <EmptyState text="Reading your library…" />;
   if (!tree || tree.artist_count === 0) {
     return (
@@ -144,31 +144,55 @@ function ArtistTree({ tree, loading, openArtists, onToggleArtist, onOpenTrack })
       {tree.artists.map((artist) => {
         const open = openArtists.has(artist.name);
         return (
-          <div key={artist.name} className="panel overflow-hidden">
-            <button
-              className="w-full flex items-center justify-between px-4 py-3 hover:bg-ink-700/50 transition"
-              onClick={() => onToggleArtist(artist.name)}
-            >
-              <div className="flex items-center gap-2.5">
-                {open ? <ChevronDown className="w-4 h-4 text-parchment-500" /> : <ChevronRight className="w-4 h-4 text-parchment-500" />}
-                <Music2 className="w-4 h-4 text-brass-500" />
-                <span className="font-display font-semibold text-sm">{artist.name}</span>
+          <div key={artist.id} className="panel overflow-hidden">
+            <div className="w-full flex items-center justify-between px-4 py-3 hover:bg-ink-700/50 transition">
+              <button className="flex items-center gap-2.5 flex-1 min-w-0" onClick={() => onToggleArtist(artist.name)}>
+                {open ? <ChevronDown className="w-4 h-4 text-parchment-500 shrink-0" /> : <ChevronRight className="w-4 h-4 text-parchment-500 shrink-0" />}
+                <ArtistAvatar artist={artist} />
+                <span className="font-display font-semibold text-sm truncate">{artist.name}</span>
+              </button>
+              <div className="flex items-center gap-3 shrink-0">
+                <ArtUploadButton
+                  title="Upload artist picture"
+                  onUpload={(file) =>
+                    api.uploadArtistPicture(artist.id, file).then(() => {
+                      toast.success("Artist picture updated");
+                      onChanged();
+                    }).catch((e) => toast.error(e.message))
+                  }
+                />
+                <span className="text-xs font-mono text-parchment-700">
+                  {artist.album_count} album{artist.album_count === 1 ? "" : "s"} · {artist.track_count} track{artist.track_count === 1 ? "" : "s"}
+                </span>
               </div>
-              <span className="text-xs font-mono text-parchment-700">
-                {artist.album_count} album{artist.album_count === 1 ? "" : "s"} · {artist.track_count} track{artist.track_count === 1 ? "" : "s"}
-              </span>
-            </button>
+            </div>
 
             {open && (
               <div className="border-t border-ink-600 divide-y divide-ink-600">
                 {artist.albums.map((album) => (
-                  <div key={album.name} className="px-4 py-3">
+                  <div key={album.id} className="px-4 py-3">
                     <div className="flex items-center gap-3 mb-2">
-                      <AlbumArt src={album.tracks[0]?.has_art ? `/api/library/tracks/${album.tracks[0].id}/artwork` : null} size="md" />
-                      <div>
+                      <AlbumArt
+                        src={
+                          album.has_folder_art || album.tracks[0]?.has_art
+                            ? api.albumArtworkUrl(album.id)
+                            : null
+                        }
+                        size="md"
+                      />
+                      <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm">{album.name}</p>
                         <p className="text-xs font-mono text-parchment-700">{album.track_count} track{album.track_count === 1 ? "" : "s"}</p>
                       </div>
+                      <ArtUploadButton
+                        title="Upload album art (writes cover.jpg + embeds into every track)"
+                        onUpload={(file) =>
+                          api.uploadAlbumArtwork(album.id, file).then((res) => {
+                            toast.success(`Album art updated — embedded in ${res.tracks_embedded} track${res.tracks_embedded === 1 ? "" : "s"}`);
+                            onChanged();
+                          }).catch((e) => toast.error(e.message))
+                        }
+                      />
                     </div>
                     <div className="rounded-lg overflow-hidden border border-ink-600 divide-y divide-ink-600">
                       {album.tracks.map((t) => (
@@ -183,6 +207,53 @@ function ArtistTree({ tree, loading, openArtists, onToggleArtist, onOpenTrack })
         );
       })}
     </div>
+  );
+}
+
+function ArtistAvatar({ artist }) {
+  if (artist.has_picture) {
+    return (
+      <img
+        src={api.artistPictureUrl(artist.id)}
+        alt=""
+        className="w-6 h-6 rounded-full object-cover ring-1 ring-black/40 shrink-0"
+      />
+    );
+  }
+  return (
+    <div className="w-6 h-6 rounded-full bg-ink-700 flex items-center justify-center shrink-0">
+      <User className="w-3.5 h-3.5 text-parchment-700" strokeWidth={1.75} />
+    </div>
+  );
+}
+
+function ArtUploadButton({ onUpload, title }) {
+  const inputRef = useRef(null);
+  return (
+    <>
+      <button
+        className="text-parchment-700 hover:text-brass-400 transition p-1"
+        title={title}
+        onClick={(e) => {
+          e.stopPropagation();
+          inputRef.current?.click();
+        }}
+      >
+        <ImagePlus className="w-4 h-4" strokeWidth={1.75} />
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onUpload(file);
+          e.target.value = "";
+        }}
+      />
+    </>
   );
 }
 

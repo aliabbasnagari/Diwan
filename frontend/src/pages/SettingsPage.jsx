@@ -70,6 +70,12 @@ export default function SettingsPage() {
           <Field label="Library directory" hint="Navidrome's music root — point this at the same folder Navidrome scans.">
             <input className="input w-full" value={form.library_dir} onChange={(e) => setForm({ ...form, library_dir: e.target.value })} />
           </Field>
+          <Field
+            label="Artist image directory"
+            hint={`Artist pictures live outside the music library. Point Navidrome at this same folder to use them — see the note below.`}
+          >
+            <input className="input w-full" value={form.artist_image_dir || ""} onChange={(e) => setForm({ ...form, artist_image_dir: e.target.value })} />
+          </Field>
           <Field label="Concurrent downloads">
             <input
               type="number"
@@ -80,6 +86,31 @@ export default function SettingsPage() {
               onChange={(e) => setForm({ ...form, max_concurrent_downloads: Number(e.target.value) })}
             />
           </Field>
+        </section>
+
+        <section className="panel p-5 space-y-3">
+          <p className="label-eyebrow">Artwork &amp; Navidrome config</p>
+          <ul className="text-xs text-parchment-500 space-y-2 leading-relaxed">
+            <li>
+              <span className="text-parchment-100 font-medium">Track art</span> is embedded directly in a
+              single audio file — nothing to configure, every player reads it.
+            </li>
+            <li>
+              <span className="text-parchment-100 font-medium">Album art</span> is written as{" "}
+              <code className="font-mono text-brass-400">cover.jpg</code> in the album folder (and embedded
+              in every track in it) — this is Navidrome's default, so nothing to configure either.
+            </li>
+            <li>
+              <span className="text-parchment-100 font-medium">Artist pictures</span> are saved outside the
+              music library, so Navidrome needs to be told where to find them. Set these two environment
+              variables on your Navidrome server, pointing at the artist image directory above:
+              <code className="block font-mono text-brass-400 mt-1.5 bg-ink-950 rounded px-2 py-1.5">
+                ND_ARTISTIMAGEFOLDER={form.artist_image_dir || "<artist image directory>"}
+                <br />
+                ND_ARTISTARTPRIORITY=image-folder,artist.*,album/artist.*,last.fm
+              </code>
+            </li>
+          </ul>
         </section>
 
         <section className="panel p-5 space-y-4">

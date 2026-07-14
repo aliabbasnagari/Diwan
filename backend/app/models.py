@@ -106,6 +106,73 @@ class Download(Base):
         }
 
 
+class ConversionStatus(str, enum.Enum):
+    QUEUED = "queued"
+    CONVERTING = "converting"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class ConversionJob(Base):
+    """One ffmpeg conversion: an uploaded file, or an existing library
+    track / spooler download, re-encoded into a different format."""
+
+    __tablename__ = "conversion_jobs"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # --- source ---
+    source_kind = Column(String, nullable=False)      # "upload" | "library" | "download"
+    source_ref = Column(String, nullable=True)          # track id / download id, if not an upload
+    source_path = Column(String, nullable=False)          # resolved absolute path being read
+    source_filename = Column(String, nullable=False)
+    source_duration = Column(Float, nullable=True)
+
+    # --- target ---
+    target_format = Column(String, nullable=False)    # e.g. mp3, flac, mp4, webm
+    target_bitrate = Column(String, nullable=True)      # audio only, e.g. "192k"
+    target_resolution = Column(String, nullable=True)     # video only, e.g. "1080" or "source"
+    save_to_library = Column(Boolean, default=False)        # audio output: tag + move into the library
+
+    # --- status / progress ---
+    status = Column(SAEnum(ConversionStatus), default=ConversionStatus.QUEUED, nullable=False, index=True)
+    progress_percent = Column(Float, default=0.0)
+    speed = Column(String, nullable=True)
+    error_message = Column(Text, nullable=True)
+
+    # --- result ---
+    output_path = Column(String, nullable=True)
+    output_filesize = Column(Integer, nullable=True)
+    library_path = Column(String, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "source_kind": self.source_kind,
+            "source_ref": self.source_ref,
+            "source_filename": self.source_filename,
+            "source_duration": self.source_duration,
+            "target_format": self.target_format,
+            "target_bitrate": self.target_bitrate,
+            "target_resolution": self.target_resolution,
+            "save_to_library": self.save_to_library,
+            "status": self.status.value if self.status else None,
+            "progress_percent": round(self.progress_percent or 0, 1),
+            "speed": self.speed,
+            "error_message": self.error_message,
+            "output_filesize": self.output_filesize,
+            "library_path": self.library_path,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+        }
+
+
 class AppSettings(Base):
     """Single-row table of user-editable runtime settings."""
 
@@ -115,6 +182,7 @@ class AppSettings(Base):
 
     download_dir = Column(String, nullable=False)
     library_dir = Column(String, nullable=False)
+    artist_image_dir = Column(String, nullable=True)
     max_concurrent_downloads = Column(Integer, default=2)
 
     navidrome_url = Column(String, nullable=True)
@@ -126,6 +194,7 @@ class AppSettings(Base):
         d = {
             "download_dir": self.download_dir,
             "library_dir": self.library_dir,
+            "artist_image_dir": self.artist_image_dir,
             "max_concurrent_downloads": self.max_concurrent_downloads,
             "navidrome_url": self.navidrome_url,
             "navidrome_username": self.navidrome_username,

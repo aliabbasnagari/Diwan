@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Sidebar from "./components/Sidebar.jsx";
 import LibraryPage from "./pages/LibraryPage.jsx";
 import SpoolerPage from "./pages/SpoolerPage.jsx";
+import ConvertPage from "./pages/ConvertPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 
 export default function App() {
@@ -13,6 +14,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<LibraryPage />} />
             <Route path="/spooler" element={<SpoolerPage />} />
+            <Route path="/convert" element={<ConvertPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </div>

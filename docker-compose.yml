@@ -7,6 +7,7 @@ services:
     environment:
       DOWNLOAD_DIR: /data/downloads
       LIBRARY_DIR: /music
+      CONVERT_DIR: /data/conversions
       DB_PATH: /data/downloader.db
       MAX_CONCURRENT_DOWNLOADS: "2"
     volumes:

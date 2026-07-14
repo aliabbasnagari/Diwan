@@ -1,38 +1,18 @@
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, Depends, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from .config import CORS_ORIGINS
-from .database import get_db, init_db, SessionLocal
+from .database import get_db
 from .models import Download, DownloadStatus, MediaType
 from .schemas import PreviewRequest, DownloadCreateRequest
-from . import downloader, settings_service
-from .routes_library import router as library_router
-from .routes_settings import router as settings_router
-from .routes_navidrome import router as navidrome_router
-from .routes_convert import router as convert_router
-from .models import ConversionJob, ConversionStatus
-from . import converter
+from . import downloader
+from .auth import require_admin
 
-app = FastAPI(title="Navidrome Library Manager API")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(library_router)
-app.include_router(settings_router)
-app.include_router(navidrome_router)
-app.include_router(convert_router)
+router = APIRouter(prefix="/api", tags=["downloads"], dependencies=[Depends(require_admin)])
 
 ACTIVE_STATUSES = [
     DownloadStatus.DOWNLOADING, DownloadStatus.QUEUED,
@@ -40,54 +20,7 @@ ACTIVE_STATUSES = [
 ]
 
 
-@app.on_event("startup")
-def on_startup():
-    init_db()
-    db = SessionLocal()
-    try:
-        settings_service.get_settings(db)  # ensures the settings row + dirs exist
-    finally:
-        db.close()
-
-    downloader.start_workers()
-    converter.start_workers()
-
-    # Resume anything left mid-flight from a previous run
-    db = SessionLocal()
-    try:
-        stuck = db.query(Download).filter(Download.status.in_(ACTIVE_STATUSES)).all()
-        for row in stuck:
-            row.status = DownloadStatus.QUEUED
-            row.progress_percent = 0
-        db.commit()
-        requeue = db.query(Download).filter(Download.status == DownloadStatus.QUEUED).all()
-        for row in requeue:
-            downloader.enqueue_download(row.id)
-    finally:
-        db.close()
-
-    db = SessionLocal()
-    try:
-        stuck_conversions = db.query(ConversionJob).filter(
-            ConversionJob.status == ConversionStatus.CONVERTING
-        ).all()
-        for row in stuck_conversions:
-            row.status = ConversionStatus.QUEUED
-            row.progress_percent = 0
-        db.commit()
-        requeue_conversions = db.query(ConversionJob).filter(ConversionJob.status == ConversionStatus.QUEUED).all()
-        for row in requeue_conversions:
-            converter.enqueue(row.id)
-    finally:
-        db.close()
-
-
-@app.get("/api/health")
-def health():
-    return {"ok": True}
-
-
-@app.post("/api/preview")
+@router.post("/preview")
 def preview(req: PreviewRequest):
     try:
         info = downloader.extract_info(req.url)
@@ -96,7 +29,7 @@ def preview(req: PreviewRequest):
     return info
 
 
-@app.post("/api/downloads")
+@router.post("/downloads")
 def create_download(req: DownloadCreateRequest, db: Session = Depends(get_db)):
     row = Download(
         url=req.url,
@@ -117,7 +50,7 @@ def create_download(req: DownloadCreateRequest, db: Session = Depends(get_db)):
     return row.to_dict()
 
 
-@app.get("/api/downloads")
+@router.get("/downloads")
 def list_downloads(
     status: Optional[str] = Query(default=None),
     limit: int = Query(default=100, le=500),
@@ -131,7 +64,7 @@ def list_downloads(
     return [row.to_dict() for row in q.all()]
 
 
-@app.get("/api/downloads/{download_id}")
+@router.get("/downloads/{download_id}")
 def get_download(download_id: int, db: Session = Depends(get_db)):
     row = db.get(Download, download_id)
     if row is None:
@@ -139,7 +72,7 @@ def get_download(download_id: int, db: Session = Depends(get_db)):
     return row.to_dict()
 
 
-@app.post("/api/downloads/{download_id}/cancel")
+@router.post("/downloads/{download_id}/cancel")
 def cancel_download(download_id: int, db: Session = Depends(get_db)):
     row = db.get(Download, download_id)
     if row is None:
@@ -150,7 +83,7 @@ def cancel_download(download_id: int, db: Session = Depends(get_db)):
     return row.to_dict()
 
 
-@app.post("/api/downloads/{download_id}/retry")
+@router.post("/downloads/{download_id}/retry")
 def retry_download(download_id: int, db: Session = Depends(get_db)):
     row = db.get(Download, download_id)
     if row is None:
@@ -163,7 +96,7 @@ def retry_download(download_id: int, db: Session = Depends(get_db)):
     return row.to_dict()
 
 
-@app.delete("/api/downloads/{download_id}")
+@router.delete("/downloads/{download_id}")
 def delete_download(download_id: int, delete_file: bool = True, db: Session = Depends(get_db)):
     row = db.get(Download, download_id)
     if row is None:
@@ -178,7 +111,7 @@ def delete_download(download_id: int, delete_file: bool = True, db: Session = De
     return {"deleted": True}
 
 
-@app.get("/api/downloads/{download_id}/file")
+@router.get("/downloads/{download_id}/file")
 def get_file(download_id: int, db: Session = Depends(get_db)):
     row = db.get(Download, download_id)
     if row is None or not row.filepath:
@@ -189,7 +122,7 @@ def get_file(download_id: int, db: Session = Depends(get_db)):
     return FileResponse(path, filename=path.name)
 
 
-@app.get("/api/stats")
+@router.get("/stats")
 def stats(db: Session = Depends(get_db)):
     total = db.query(func.count(Download.id)).scalar()
     completed = db.query(func.count(Download.id)).filter(Download.status == DownloadStatus.COMPLETED).scalar()

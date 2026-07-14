@@ -15,10 +15,12 @@ COPY app ./app
 # Persisted at runtime via volumes (see docker-compose.yml).
 # DOWNLOAD_DIR is scratch space for in-progress/video downloads.
 # LIBRARY_DIR should point at the same folder Navidrome scans.
+# CONVERT_DIR holds uploads + output for the Convert page.
 ENV DOWNLOAD_DIR=/data/downloads
 ENV LIBRARY_DIR=/music
+ENV CONVERT_DIR=/data/conversions
 ENV DB_PATH=/data/downloader.db
-RUN mkdir -p /data/downloads /music
+RUN mkdir -p /data/downloads /data/conversions /music
 
 EXPOSE 8000
 
