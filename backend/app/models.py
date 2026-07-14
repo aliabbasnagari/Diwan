@@ -190,13 +190,17 @@ class AppSettings(Base):
     navidrome_password = Column(String, nullable=True)
     navidrome_auto_scan = Column(Boolean, default=False)
 
+    session_secret = Column(String, nullable=True)  # signs admin login session tokens; never exposed via to_dict
+
     def to_dict(self, include_secrets: bool = False):
+        from .config import NAVIDROME_URL
         d = {
             "download_dir": self.download_dir,
             "library_dir": self.library_dir,
             "artist_image_dir": self.artist_image_dir,
             "max_concurrent_downloads": self.max_concurrent_downloads,
             "navidrome_url": self.navidrome_url,
+            "navidrome_url_locked": bool(NAVIDROME_URL),
             "navidrome_username": self.navidrome_username,
             "navidrome_auto_scan": self.navidrome_auto_scan,
             "navidrome_password_set": bool(self.navidrome_password),

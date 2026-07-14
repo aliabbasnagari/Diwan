@@ -129,16 +129,24 @@ export default function SettingsPage() {
             )}
           </div>
 
-          <Field label="Server URL" hint="e.g. http://localhost:4533">
+          <Field
+            label="Server URL"
+            hint={
+              form.navidrome_url_locked
+                ? "Set via NAVIDROME_URL in the server's environment — this is also what you log in against."
+                : "e.g. http://localhost:4533"
+            }
+          >
             <input
-              className="input w-full"
+              className="input w-full disabled:opacity-60 disabled:cursor-not-allowed"
               placeholder="http://localhost:4533"
               value={form.navidrome_url || ""}
+              disabled={form.navidrome_url_locked}
               onChange={(e) => setForm({ ...form, navidrome_url: e.target.value })}
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Username">
+            <Field label="Username" hint="Synced automatically from your last login.">
               <input
                 className="input w-full"
                 value={form.navidrome_username || ""}

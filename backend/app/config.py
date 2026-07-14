@@ -1,6 +1,11 @@
 import os
 from pathlib import Path
 
+# The Navidrome server Crate authenticates admin logins against. Provided
+# via env (e.g. in docker-compose.yml or a .env file), not editable from
+# the UI — the whole app is gated behind an admin login on this server.
+NAVIDROME_URL = os.environ.get("NAVIDROME_URL", "").rstrip("/")
+
 # Base directory for the backend
 BASE_DIR = Path(__file__).resolve().parent.parent
 

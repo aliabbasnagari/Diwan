@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
-import { Disc3, Library, DownloadCloud, Settings, RefreshCcw } from "lucide-react";
+import { Disc3, Library, DownloadCloud, Settings, RefreshCcw, LogOut, User } from "lucide-react";
+import { useAuth } from "../auth.jsx";
 
 const links = [
   { to: "/", label: "Library", icon: Library, end: true },
@@ -9,6 +10,8 @@ const links = [
 ];
 
 export default function Sidebar() {
+  const { username, logout } = useAuth();
+
   return (
     <aside className="w-56 shrink-0 border-r border-ink-600 flex flex-col">
       <div className="px-5 py-6 flex items-center gap-2.5 border-b border-ink-600">
@@ -36,7 +39,20 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="px-5 py-4 border-t border-ink-600">
+      <div className="px-5 py-4 border-t border-ink-600 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-2 text-xs font-mono text-parchment-500 min-w-0">
+            <User className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">{username}</span>
+          </span>
+          <button
+            onClick={logout}
+            title="Log out"
+            className="text-parchment-700 hover:text-rust-400 transition p-1 shrink-0"
+          >
+            <LogOut className="w-3.5 h-3.5" strokeWidth={1.75} />
+          </button>
+        </div>
         <p className="text-[11px] font-mono text-parchment-700 leading-relaxed">
           Library manager &amp; media spooler for Navidrome.
         </p>

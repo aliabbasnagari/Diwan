@@ -10,6 +10,11 @@ services:
       CONVERT_DIR: /data/conversions
       DB_PATH: /data/downloader.db
       MAX_CONCURRENT_DOWNLOADS: "2"
+      # Required — Crate authenticates against this Navidrome server's
+      # admin login and refuses to boot into a usable state without it.
+      # Set NAVIDROME_URL in a .env file next to this compose file (see
+      # .env.example), or inline it here directly.
+      NAVIDROME_URL: ${NAVIDROME_URL:?Set NAVIDROME_URL in a .env file — see .env.example}
     volumes:
       - crate-data:/data
       # This should be the SAME folder your Navidrome instance scans, so

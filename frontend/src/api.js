@@ -2,6 +2,40 @@ import axios from "axios";
 
 const client = axios.create({ baseURL: "/api" });
 
+const TOKEN_KEY = "crate_token";
+
+export function setAuthToken(token) {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+    client.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+    delete client.defaults.headers.common["Authorization"];
+  }
+}
+
+// re-attach on page load if a token is already stored
+const stored = localStorage.getItem(TOKEN_KEY);
+if (stored) setAuthToken(stored);
+
+// plain <img>/<a> tags can't send custom headers, so URL-returning
+// helpers below append the token as a query param instead
+function tokenParam() {
+  const t = localStorage.getItem(TOKEN_KEY);
+  return t ? `token=${encodeURIComponent(t)}` : "";
+}
+
+// let the app react globally to an expired/invalid session
+client.interceptors.response.use(
+  (r) => r,
+  (err) => {
+    if (err?.response?.status === 401) {
+      window.dispatchEvent(new Event("crate:unauthorized"));
+    }
+    return Promise.reject(err);
+  }
+);
+
 function unwrap(promise) {
   return promise.then((r) => r.data).catch((err) => {
     const detail = err?.response?.data?.detail || err.message || "Request failed";
@@ -10,6 +44,12 @@ function unwrap(promise) {
 }
 
 export const api = {
+  // --- auth ---
+  authConfig: () => unwrap(client.get("/auth/config")),
+  login: (username, password) => unwrap(client.post("/auth/login", { username, password })),
+  me: () => unwrap(client.get("/auth/me")),
+  logout: () => unwrap(client.post("/auth/logout")),
+
   // --- downloads / spooler ---
   preview: (url) => unwrap(client.post("/preview", { url })),
   createDownload: (payload) => unwrap(client.post("/downloads", payload)),
@@ -18,7 +58,7 @@ export const api = {
   cancelDownload: (id) => unwrap(client.post(`/downloads/${id}/cancel`)),
   retryDownload: (id) => unwrap(client.post(`/downloads/${id}/retry`)),
   deleteDownload: (id) => unwrap(client.delete(`/downloads/${id}`)),
-  fileUrl: (id) => `/api/downloads/${id}/file`,
+  fileUrl: (id) => `/api/downloads/${id}/file?${tokenParam()}`,
   downloadStats: () => unwrap(client.get("/stats")),
 
   // --- library: tracks ---
@@ -32,7 +72,7 @@ export const api = {
   organizeLibrary: (trackIds) => unwrap(client.post("/library/organize", { track_ids: trackIds || null })),
 
   // --- library: track-level art (embedded in that one file only) ---
-  trackArtworkUrl: (id) => `/api/library/tracks/${id}/artwork?_=${Date.now()}`,
+  trackArtworkUrl: (id) => `/api/library/tracks/${id}/artwork?_=${Date.now()}&${tokenParam()}`,
   uploadTrackArtwork: (id, file) => {
     const form = new FormData();
     form.append("file", file);
@@ -42,7 +82,7 @@ export const api = {
   },
 
   // --- library: album-level art (cover.jpg in the folder + embedded in every track) ---
-  albumArtworkUrl: (albumId) => `/api/library/albums/${albumId}/artwork?_=${Date.now()}`,
+  albumArtworkUrl: (albumId) => `/api/library/albums/${albumId}/artwork?_=${Date.now()}&${tokenParam()}`,
   uploadAlbumArtwork: (albumId, file) => {
     const form = new FormData();
     form.append("file", file);
@@ -52,7 +92,7 @@ export const api = {
   },
 
   // --- library: artist pictures (saved to a dedicated folder for Navidrome's ArtistImageFolder) ---
-  artistPictureUrl: (artistId) => `/api/library/artists/${artistId}/picture?_=${Date.now()}`,
+  artistPictureUrl: (artistId) => `/api/library/artists/${artistId}/picture?_=${Date.now()}&${tokenParam()}`,
   uploadArtistPicture: (artistId, file) => {
     const form = new FormData();
     form.append("file", file);
@@ -85,6 +125,6 @@ export const api = {
   },
   cancelConversion: (id) => unwrap(client.post(`/convert/jobs/${id}/cancel`)),
   deleteConversion: (id) => unwrap(client.delete(`/convert/jobs/${id}`)),
-  conversionFileUrl: (id) => `/api/convert/jobs/${id}/file`,
+  conversionFileUrl: (id) => `/api/convert/jobs/${id}/file?${tokenParam()}`,
   conversionStats: () => unwrap(client.get("/convert/stats")),
 };
