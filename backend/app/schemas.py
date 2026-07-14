@@ -18,6 +18,9 @@ class DownloadCreateRequest(BaseModel):
     tag_artist: Optional[str] = None
     tag_album: Optional[str] = None
     tag_title: Optional[str] = None
+    tag_album_artist: Optional[str] = None
+    tag_genre: Optional[str] = None
+    tag_year: Optional[int] = None
 
 
 class SettingsUpdateRequest(BaseModel):

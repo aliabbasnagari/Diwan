@@ -43,7 +43,10 @@ class Download(Base):
     add_to_library = Column(Boolean, default=False)
     tag_artist = Column(String, nullable=True)     # user-supplied / overridden before download
     tag_album = Column(String, nullable=True)
-    tag_title = Column(String, nullable=True)
+    tag_title = Column(String, nullable=True)     
+    tag_album_artist = Column(String, nullable=True)
+    tag_genre = Column(String, nullable=True)
+    tag_year = Column(String, nullable=True)
 
     # --- status / progress ---
     status = Column(SAEnum(DownloadStatus), default=DownloadStatus.QUEUED, nullable=False, index=True)
@@ -83,6 +86,9 @@ class Download(Base):
             "tag_artist": self.tag_artist,
             "tag_album": self.tag_album,
             "tag_title": self.tag_title,
+            "tag_album_artist": self.tag_album_artist,
+            "tag_genre": self.tag_genre,
+            "tag_year": self.tag_year,
             "status": self.status.value if self.status else None,
             "progress_percent": round(self.progress_percent or 0, 1),
             "speed": self.speed,

@@ -164,6 +164,10 @@ def _process_download(download_id: int):
         tag_artist = row.tag_artist
         tag_album = row.tag_album
         tag_title = row.tag_title
+        tag_album_artist = row.tag_album_artist
+        tag_genre = row.tag_genre
+        tag_year = row.tag_year
+
 
         s = settings_service.get_settings(db)
         download_dir = Path(s.library_dir if (media_type == "audio" and add_to_library) else s.download_dir)
@@ -245,6 +249,9 @@ def _process_download(download_id: int):
         final_artist = tag_artist or simplified.get("artist") or "Unknown Artist"
         final_album = tag_album or simplified.get("album") or "Singles"
         final_title = tag_title or simplified.get("track") or simplified.get("title") or filepath.stem
+        final_album_artist = tag_album_artist or simplified.get("album_artist") or "Unknown Album Artist"
+        final_genre = tag_genre or simplified.get("genre") or "Unknown Genre"
+        final_year = tag_year or simplified.get("year") or "Unknown Year"
 
         try:
             thumb_bytes = _find_thumbnail_bytes(filepath)
@@ -254,6 +261,9 @@ def _process_download(download_id: int):
                 "title": final_title,
                 "artist": final_artist,
                 "album": final_album,
+                "albumartist": final_album_artist,
+                "genre": final_genre,
+                "date": final_year,
             })
         except Exception:
             pass  # tagging is best-effort; keep the file even if it fails

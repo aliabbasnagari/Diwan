@@ -79,7 +79,8 @@ def write_tags(path: Path, patch: dict) -> None:
                 del audio[field]
         else:
             audio[field] = value
-    audio.save()
+    audio.save(v2_version=4)
+    # audio.save()
 
 
 def sniff_image_mime(data: bytes) -> str:

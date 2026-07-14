@@ -41,8 +41,12 @@ def create_download(req: DownloadCreateRequest, db: Session = Depends(get_db)):
         tag_artist=req.tag_artist,
         tag_album=req.tag_album,
         tag_title=req.tag_title,
+        tag_album_artist=req.tag_album_artist,
+        tag_genre=req.tag_genre,
+        tag_year=req.tag_year,
         status=DownloadStatus.QUEUED,
     )
+
     db.add(row)
     db.commit()
     db.refresh(row)

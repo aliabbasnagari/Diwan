@@ -14,9 +14,13 @@ export default function UrlForm() {
   const [audioFormat, setAudioFormat] = useState("mp3");
   const [subtitles, setSubtitles] = useState(false);
   const [addToLibrary, setAddToLibrary] = useState(true);
-  const [tagArtist, setTagArtist] = useState("");
-  const [tagAlbum, setTagAlbum] = useState("");
+
   const [tagTitle, setTagTitle] = useState("");
+  const [tagArtist, setTagArtist] = useState("");
+  const [tagAlbumArtist, setTagAlbumArtist] = useState("");
+  const [tagAlbum, setTagAlbum] = useState("");
+  const [tagGenre, setTagGenre] = useState("");
+  const [tagYear, setTagYear] = useState("");
 
   const [preview, setPreview] = useState(null);
   const [fetched, setFetched] = useState(false);
@@ -28,9 +32,14 @@ export default function UrlForm() {
       setPreview(info);
       const qualities = info.video_qualities || [{ value: "best", label: "Best available" }];
       setQuality(qualities[0].value);
-      setTagArtist(info.artist || "");
-      setTagAlbum(info.album || "");
+
       setTagTitle(info.track || info.title || "");
+      setTagArtist(info.artist || "");
+      setTagAlbumArtist(info.album_artist || info.artist || "");
+      setTagAlbum(info.album || "");
+      setTagGenre(info.genre || "");
+      setTagYear(info.release_year || info.year || "");
+
       setFetched(true);
     },
     onError: (e) => toast.error(e.message),
@@ -45,9 +54,12 @@ export default function UrlForm() {
         audio_format: audioFormat,
         subtitles,
         add_to_library: mediaType === "audio" && addToLibrary,
-        tag_artist: tagArtist || null,
-        tag_album: tagAlbum || null,
         tag_title: tagTitle || null,
+        tag_artist: tagArtist || null,
+        tag_album_artist: tagAlbumArtist || null,
+        tag_album: tagAlbum || null,
+        tag_genre: tagGenre || null,
+        tag_year: tagYear || null,
       }),
     onSuccess: () => {
       toast.success("Queued");
@@ -111,9 +123,8 @@ export default function UrlForm() {
                 <button
                   key={t}
                   onClick={() => setMediaType(t)}
-                  className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
-                    mediaType === t ? "bg-brass-600 text-parchment-100" : "text-parchment-500 hover:text-parchment-100"
-                  }`}
+                  className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${mediaType === t ? "bg-brass-600 text-parchment-100" : "text-parchment-500 hover:text-parchment-100"
+                    }`}
                 >
                   {t === "video" ? "Video" : "Audio only"}
                 </button>
@@ -153,12 +164,44 @@ export default function UrlForm() {
               </label>
               {addToLibrary && (
                 <div className="grid grid-cols-3 gap-2">
-                  <input className="input" placeholder="Album Artist" value={tagArtist} onChange={(e) => setTagArtist(e.target.value)} />
-                  <input className="input" placeholder="Artist" value={tagArtist} onChange={(e) => setTagArtist(e.target.value)} />
-                  <input className="input" placeholder="Album" value={tagAlbum} onChange={(e) => setTagAlbum(e.target.value)} />
-                  <input className="input" placeholder="Title" value={tagTitle} onChange={(e) => setTagTitle(e.target.value)} />
-          
-              
+                  <input
+                    className="input"
+                    placeholder="Title"
+                    value={tagTitle}
+                    onChange={(e) => setTagTitle(e.target.value)}
+                  />
+                  <input
+                    className="input"
+                    placeholder="Artist"
+                    value={tagArtist}
+                    onChange={(e) => setTagArtist(e.target.value)}
+                  />
+                  <input
+                    className="input"
+                    placeholder="Album Artist"
+                    value={tagAlbumArtist}
+                    onChange={(e) => setTagAlbumArtist(e.target.value)}
+                  />
+                  <input
+                    className="input"
+                    placeholder="Album"
+                    value={tagAlbum}
+                    onChange={(e) => setTagAlbum(e.target.value)}
+                  />
+                  <input
+                    className="input"
+                    placeholder="Genre"
+                    value={tagGenre}
+                    onChange={(e) => setTagGenre(e.target.value)}
+                  />
+                  <input
+                    className="input"
+                    type="number"
+                    placeholder="Year"
+                    value={tagYear}
+                    onChange={(e) => setTagYear(e.target.value)}
+                  />
+
                 </div>
               )}
             </div>
