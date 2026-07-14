@@ -15,7 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 DEFAULT_DOWNLOAD_DIR = Path(os.environ.get("DOWNLOAD_DIR", BASE_DIR / "downloads"))
 DEFAULT_LIBRARY_DIR = Path(os.environ.get("LIBRARY_DIR", BASE_DIR / "library"))
-DEFAULT_ARTIST_IMAGE_DIR = Path(os.environ.get("ARTIST_IMAGE_DIR", DEFAULT_LIBRARY_DIR / ".artist-images"))
+DEFAULT_ARTIST_IMAGE_DIR = Path(os.environ.get("ARTIST_IMAGE_DIR", DEFAULT_DOWNLOAD_DIR / "artist-images"))
 
 DEFAULT_DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 DEFAULT_LIBRARY_DIR.mkdir(parents=True, exist_ok=True)

@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 from .config import CORS_ORIGINS
 from .database import init_db, SessionLocal
@@ -36,7 +37,6 @@ ACTIVE_DOWNLOAD_STATUSES = [
     DownloadStatus.DOWNLOADING, DownloadStatus.QUEUED,
     DownloadStatus.FETCHING_INFO, DownloadStatus.PROCESSING, DownloadStatus.TAGGING,
 ]
-
 
 @app.on_event("startup")
 def on_startup():

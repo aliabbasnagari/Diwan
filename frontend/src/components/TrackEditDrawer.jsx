@@ -7,9 +7,9 @@ import { formatDuration, formatBytes } from "../utils.js";
 
 const FIELDS = [
   { key: "title", label: "Title" },
-  { key: "artist", label: "Artist" },
+  { key: "artist", label: "Artist", hint: "Comma-separate for multiple artists — saved as real multi-value tags, not one joined string." },
   { key: "album", label: "Album" },
-  { key: "albumartist", label: "Album artist" },
+  { key: "albumartist", label: "Album artist", hint: "The canonical artist this album is grouped under (used for folder placement and the artist picture)." },
   { key: "genre", label: "Genre" },
   { key: "date", label: "Year" },
   { key: "tracknumber", label: "Track #" },
@@ -140,6 +140,7 @@ export default function TrackEditDrawer({ track, onClose }) {
                   value={form[f.key] ?? ""}
                   onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
                 />
+                {f.hint && <span className="block text-[10.5px] text-parchment-700 mt-1 leading-snug">{f.hint}</span>}
               </label>
             ))}
           </div>

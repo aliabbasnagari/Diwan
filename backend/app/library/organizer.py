@@ -12,6 +12,15 @@ def sanitize(name: str, fallback: str = "Unknown") -> str:
     return name or fallback
 
 
+def folder_artist(tags: dict) -> str:
+    """The name a track's folder should be organized under: albumartist
+    if the file has one (the canonical "who this album belongs to"),
+    falling back to the (possibly multi-value, comma-joined) artist tag.
+    Using albumartist keeps an album's tracks together even when
+    individual tracks credit different/featured artists."""
+    return tags.get("albumartist") or tags.get("artist") or "Unknown Artist"
+
+
 def build_library_path(library_dir: Path, artist: str, album: str, title: str, track_number: str | None, ext: str) -> Path:
     """Artist/Album/[NN - ]Title.ext, with each segment sanitized and the
     whole thing guaranteed unique within the target directory."""

@@ -1,9 +1,22 @@
 FROM python:3.12-slim
 
-# ffmpeg is required by yt-dlp for merging video+audio and audio extraction
+# Install dependencies
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg \
+    && apt-get install -y --no-install-recommends \
+        ffmpeg \
+        nodejs \
+        npm \
+        curl \
+        ca-certificates \
+        unzip \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Deno
+RUN curl -fsSL https://deno.land/install.sh | sh
+
+# Add Deno to PATH
+ENV DENO_INSTALL="/root/.deno"
+ENV PATH="${DENO_INSTALL}/bin:${PATH}"
 
 WORKDIR /app
 
@@ -11,15 +24,13 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
+COPY cookies.txt .
 
-# Persisted at runtime via volumes (see docker-compose.yml).
-# DOWNLOAD_DIR is scratch space for in-progress/video downloads.
-# LIBRARY_DIR should point at the same folder Navidrome scans.
-# CONVERT_DIR holds uploads + output for the Convert page.
 ENV DOWNLOAD_DIR=/data/downloads
 ENV LIBRARY_DIR=/music
 ENV CONVERT_DIR=/data/conversions
 ENV DB_PATH=/data/downloader.db
+
 RUN mkdir -p /data/downloads /data/conversions /music
 
 EXPOSE 8000

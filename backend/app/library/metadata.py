@@ -20,6 +20,15 @@ from ..config import ALBUM_ART_MAX_SIZE
 
 EASY_FIELDS = ["title", "artist", "album", "albumartist", "genre", "date", "tracknumber", "discnumber"]
 
+# "artist" is written/read as genuinely multiple tag values (multiple ID3
+# TPE1 values, multiple Vorbis ARTIST comments, etc.) so Navidrome and
+# other taggers can split credits properly — not one string with commas
+# baked in. The API still exchanges it as a single comma-joined string;
+# the split/join happens right here at the mutagen boundary. "albumartist"
+# stays single-valued on purpose — it's the one canonical name an album
+# groups under, comma-separating it would defeat the point.
+MULTI_VALUE_FIELDS = {"artist"}
+
 
 def read_tags(path: Path) -> dict:
     tags = {f: None for f in EASY_FIELDS}
@@ -32,7 +41,10 @@ def read_tags(path: Path) -> dict:
             for field in EASY_FIELDS:
                 val = audio.get(field)
                 if val:
-                    tags[field] = val[0]
+                    if field in MULTI_VALUE_FIELDS:
+                        tags[field] = ", ".join(v for v in val if v)
+                    else:
+                        tags[field] = val[0]
             if audio.info is not None:
                 duration = getattr(audio.info, "length", None)
                 bitrate = getattr(audio.info, "bitrate", None)
@@ -55,7 +67,14 @@ def write_tags(path: Path, patch: dict) -> None:
         value = patch.get(field)
         if value is None:
             continue
-        if value == "":
+        if field in MULTI_VALUE_FIELDS:
+            values = [v.strip() for v in value.split(",") if v.strip()]
+            if not values:
+                if field in audio:
+                    del audio[field]
+            else:
+                audio[field] = values
+        elif value == "":
             if field in audio:
                 del audio[field]
         else:

@@ -97,7 +97,7 @@ def retry_download(download_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/downloads/{download_id}")
-def delete_download(download_id: int, delete_file: bool = True, db: Session = Depends(get_db)):
+def delete_download(download_id: int, delete_file: bool = False, db: Session = Depends(get_db)):
     row = db.get(Download, download_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Not found")

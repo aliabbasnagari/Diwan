@@ -5,29 +5,17 @@ services:
     container_name: crate-backend
     restart: unless-stopped
     environment:
-      DOWNLOAD_DIR: /data/downloads
       LIBRARY_DIR: /music
+      DOWNLOAD_DIR: /data/downloads
       CONVERT_DIR: /data/conversions
       DB_PATH: /data/downloader.db
       MAX_CONCURRENT_DOWNLOADS: "2"
-      # Required — Crate authenticates against this Navidrome server's
-      # admin login and refuses to boot into a usable state without it.
-      # Set NAVIDROME_URL in a .env file next to this compose file (see
-      # .env.example), or inline it here directly.
       NAVIDROME_URL: ${NAVIDROME_URL:?Set NAVIDROME_URL in a .env file — see .env.example}
     volumes:
-      - crate-data:/data
-      # This should be the SAME folder your Navidrome instance scans, so
-      # anything Crate downloads/organizes shows up in Navidrome. Easiest
-      # way: point both at one host folder. Swap the line below for e.g.
-      #   - /home/you/music:/music
-      # to bind-mount your existing collection instead of using a fresh
-      # named volume.
-      - crate-music:/music
+      - /home/opc/myapps/noorify/data:/data
+      - /home/opc/myapps/noorify/music:/music
     ports:
-      # exposed mainly for direct API access / debugging; the frontend
-      # talks to the backend over the internal docker network instead
-      - "8000:8000"
+      - "8880:8000"
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 10s
@@ -44,26 +32,4 @@ services:
       backend:
         condition: service_healthy
     ports:
-      - "8080:80"
-
-  # Optional: uncomment to run Navidrome itself alongside Crate, sharing
-  # the same music volume, so the whole stack comes up with one command.
-  # navidrome:
-  #   image: deluan/navidrome:latest
-  #   container_name: navidrome
-  #   restart: unless-stopped
-  #   ports:
-  #     - "4533:4533"
-  #   environment:
-  #     ND_SCANSCHEDULE: "1h"
-  #   volumes:
-  #     - navidrome-data:/data
-  #     - crate-music:/music:ro
-
-volumes:
-  crate-data:
-    name: crate-data
-  crate-music:
-    name: crate-music
-  # navidrome-data:
-  #   name: navidrome-data
+      - "8881:80"

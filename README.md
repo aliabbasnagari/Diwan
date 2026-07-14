@@ -25,19 +25,32 @@ on you.
 ## Features
 
 - **Library browser** — artist → album → track tree, full-text search,
-  per-track duration/bitrate/size
+  per-track duration/bitrate/size, grouped by **album artist** (falling
+  back to the track's own artist) so featured/collaboration tracks stay
+  with the rest of their album instead of splintering into a pseudo-artist
 - **Tag editor** — title, artist, album, album artist, genre, year, track
-  and disc number, read/written with Mutagen across mp3/flac/m4a/ogg/opus
+  and disc number, read/written with Mutagen across mp3/flac/m4a/ogg/opus.
+  **Artist** supports multiple values — type a comma-separated list
+  ("Main Artist, Guest Star") and it's written as genuinely separate tag
+  values (multiple ID3 TPE1 / Vorbis ARTIST entries), the same convention
+  MusicBrainz Picard uses, not one string with commas baked in. **Album
+  artist** stays single-valued on purpose — it's the one name an album
+  and its artist picture are organized under. (One caveat: an artist
+  whose actual name contains a comma, e.g. "Earth, Wind & Fire", will get
+  split — there's no escaping mechanism, so type single-artist names
+  without commas.)
 - **Three levels of artwork**, matching how Navidrome actually resolves
   images:
   - *Track art* — embedded in a single file only (Mutagen)
   - *Album art* — written as `cover.jpg` in the album folder and embedded
     in every track in it (Navidrome's own default priority order)
   - *Artist pictures* — saved to a dedicated folder outside the music
-    library, for use with Navidrome's `ArtistImageFolder` setting
+    library (named after **album artist**, not the possibly-multi-value
+    artist tag), for use with Navidrome's `ArtistImageFolder` setting
   All three are resized/re-encoded with Pillow before writing.
-- **Auto-organize** — editing tags can move the file to match; a
-  library-wide "Organize all" pass tidies anything dropped in loose
+- **Auto-organize** — editing tags can move the file to match (folder
+  path uses album artist, same reasoning as above); a library-wide
+  "Organize all" pass tidies anything dropped in loose
 - **Spooler** — Fetch a URL to see real available qualities pulled live
   from yt-dlp, then Download; video (up to whatever resolutions the source
   actually has) or audio-only (mp3/m4a/opus/wav/flac, always extracted at

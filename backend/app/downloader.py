@@ -3,6 +3,7 @@ import queue
 import threading
 from datetime import datetime
 from pathlib import Path
+import os
 
 import yt_dlp
 
@@ -56,6 +57,7 @@ def extract_info(url: str) -> dict:
         "no_warnings": True,
         "skip_download": True,
         "noplaylist": True,
+        "cookiefile": "cookies.txt" if os.path.exists("cookies.txt") else None,
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
@@ -207,6 +209,7 @@ def _process_download(download_id: int):
         "subtitleslangs": ["en"] if subtitles else None,
         "merge_output_format": "mp4" if media_type == "video" else None,
         "writethumbnail": media_type == "audio",
+        "cookiefile": "cookies.txt" if os.path.exists("cookies.txt") else None,
     }
 
     if media_type == "audio":

@@ -153,9 +153,12 @@ export default function UrlForm() {
               </label>
               {addToLibrary && (
                 <div className="grid grid-cols-3 gap-2">
+                  <input className="input" placeholder="Album Artist" value={tagArtist} onChange={(e) => setTagArtist(e.target.value)} />
                   <input className="input" placeholder="Artist" value={tagArtist} onChange={(e) => setTagArtist(e.target.value)} />
                   <input className="input" placeholder="Album" value={tagAlbum} onChange={(e) => setTagAlbum(e.target.value)} />
                   <input className="input" placeholder="Title" value={tagTitle} onChange={(e) => setTagTitle(e.target.value)} />
+          
+              
                 </div>
               )}
             </div>

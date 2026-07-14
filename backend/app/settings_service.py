@@ -32,7 +32,7 @@ def get_settings(db: Session) -> AppSettings:
     dirty = False
     if not row.artist_image_dir:
         # backfill for rows created before this setting existed
-        row.artist_image_dir = str(Path(row.library_dir) / ".artist-images")
+        row.artist_image_dir = str(Path(row.library_dir) / "artist-images")
         dirty = True
     if not row.session_secret:
         row.session_secret = secrets.token_hex(32)

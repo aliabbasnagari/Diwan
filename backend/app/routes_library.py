@@ -99,7 +99,7 @@ def update_track(track_id: str, req: TrackTagsUpdate, db: Session = Depends(get_
         try:
             new_path = organizer.reorganize_track(
                 path, lib,
-                artist=tags.get("artist") or "Unknown Artist",
+                artist=organizer.folder_artist(tags),
                 album=tags.get("album") or "Singles",
                 title=tags.get("title") or path.stem,
                 track_number=tags.get("tracknumber"),
@@ -227,7 +227,7 @@ def organize_one(track_id: str, db: Session = Depends(get_db)):
     tags = metadata.read_tags(path)
     new_path = organizer.reorganize_track(
         path, lib,
-        artist=tags.get("artist") or "Unknown Artist",
+        artist=organizer.folder_artist(tags),
         album=tags.get("album") or "Singles",
         title=tags.get("title") or path.stem,
         track_number=tags.get("tracknumber"),
@@ -251,7 +251,7 @@ def organize_bulk(req: OrganizeRequest, db: Session = Depends(get_db)):
             tags = metadata.read_tags(path)
             new_path = organizer.reorganize_track(
                 path, lib,
-                artist=tags.get("artist") or "Unknown Artist",
+                artist=organizer.folder_artist(tags),
                 album=tags.get("album") or "Singles",
                 title=tags.get("title") or path.stem,
                 track_number=tags.get("tracknumber"),

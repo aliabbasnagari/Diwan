@@ -105,12 +105,20 @@ def artist_picture_path(artist_image_dir: Path, artist_name: str) -> Path | None
 
 
 def scan_tree(library_dir: Path, artist_image_dir: Path | None = None) -> dict:
-    """{ artists: [ { id, name, has_picture, albums: [ { id, name, dir, has_folder_art, tracks: [...] } ] } ] }"""
+    """{ artists: [ { id, name, has_picture, albums: [ { id, name, dir, has_folder_art, tracks: [...] } ] } ] }
+
+    Grouped by albumartist (falling back to the track's own artist when
+    albumartist isn't set) — the canonical "who this album belongs to"
+    field, so a track crediting multiple/featured artists doesn't get
+    split off into its own pseudo-artist. This is also what artist
+    picture files are named after.
+    """
     tracks = scan_flat(library_dir)
 
     artists: dict[str, dict[str, list[dict]]] = {}
     for t in tracks:
-        artists.setdefault(t["artist"], {}).setdefault(t["album"], []).append(t)
+        grouping_artist = t["albumartist"] or t["artist"]
+        artists.setdefault(grouping_artist, {}).setdefault(t["album"], []).append(t)
 
     result = []
     for artist_name in sorted(artists.keys(), key=str.lower):

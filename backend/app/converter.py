@@ -243,14 +243,19 @@ def _save_audio_to_library(output_path: Path, source_path: Path) -> str:
         pass
 
     artist = (tags.get("artist") if tags else None) or "Unknown Artist"
+    albumartist = tags.get("albumartist") if tags else None
     album = (tags.get("album") if tags else None) or "Singles"
     title = (tags.get("title") if tags else None) or output_path.stem
     tracknumber = tags.get("tracknumber") if tags else None
 
+    tag_patch = {"title": title, "artist": artist, "album": album}
+    if albumartist:
+        tag_patch["albumartist"] = albumartist
     try:
-        tag_metadata.write_tags(output_path, {"title": title, "artist": artist, "album": album})
+        tag_metadata.write_tags(output_path, tag_patch)
     except Exception:  # noqa: BLE001
         pass
 
-    new_path = organizer.move_into_library(output_path, lib_dir, artist, album, title, tracknumber)
+    folder_artist = albumartist or artist
+    new_path = organizer.move_into_library(output_path, lib_dir, folder_artist, album, title, tracknumber)
     return str(new_path.relative_to(lib_dir))
