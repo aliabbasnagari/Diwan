@@ -57,9 +57,17 @@ export const api = {
   getDownload: (id) => unwrap(client.get(`/downloads/${id}`)),
   cancelDownload: (id) => unwrap(client.post(`/downloads/${id}/cancel`)),
   retryDownload: (id) => unwrap(client.post(`/downloads/${id}/retry`)),
-  deleteDownload: (id) => unwrap(client.delete(`/downloads/${id}`)),
+  deleteDownload: (id, deleteFile = false) =>
+  unwrap(
+    client.delete(`/downloads/${id}`, {
+      params: {
+        delete_file: deleteFile,
+      },
+    })
+  ),
   fileUrl: (id) => `/api/downloads/${id}/file?${tokenParam()}`,
   downloadStats: () => unwrap(client.get("/stats")),
+  getTagSuggestions: () => unwrap(client.get("/suggestions")), 
 
   // --- library: tracks ---
   libraryTree: () => unwrap(client.get("/library/tree")),

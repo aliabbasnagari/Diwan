@@ -249,6 +249,7 @@ def organize_bulk(req: OrganizeRequest, db: Session = Depends(get_db)):
             continue
         try:
             tags = metadata.read_tags(path)
+
             new_path = organizer.reorganize_track(
                 path, lib,
                 artist=organizer.folder_artist(tags),
@@ -256,6 +257,7 @@ def organize_bulk(req: OrganizeRequest, db: Session = Depends(get_db)):
                 title=tags.get("title") or path.stem,
                 track_number=tags.get("tracknumber"),
             )
+
             if new_path != path:
                 moved += 1
             else:

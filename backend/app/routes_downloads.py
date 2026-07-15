@@ -10,6 +10,7 @@ from .database import get_db
 from .models import Download, DownloadStatus, MediaType
 from .schemas import PreviewRequest, DownloadCreateRequest
 from . import downloader
+from . import tag_suggestions
 from .auth import require_admin
 
 router = APIRouter(prefix="/api", tags=["downloads"], dependencies=[Depends(require_admin)])
@@ -50,6 +51,16 @@ def create_download(req: DownloadCreateRequest, db: Session = Depends(get_db)):
     db.add(row)
     db.commit()
     db.refresh(row)
+    
+    tag_suggestions.record_tags(
+        db,
+        artist=req.tag_artist,
+        album_artist=req.tag_album_artist,
+        album=req.tag_album,
+        genre=req.tag_genre,
+        year=req.tag_year,
+    )
+
     downloader.enqueue_download(row.id)
     return row.to_dict()
 
@@ -141,4 +152,12 @@ def stats(db: Session = Depends(get_db)):
         "failed": failed,
         "active": active,
         "total_bytes": int(total_bytes or 0),
+    }
+
+
+@router.get("/suggestions")
+def suggestions(db: Session = Depends(get_db)):
+    return {
+        field: tag_suggestions.get_suggestions(db, field)
+        for field in tag_suggestions.FIELD_MAP
     }

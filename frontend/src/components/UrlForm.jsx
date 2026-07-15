@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Search, Download as DownloadIcon } from "lucide-react";
 import { api } from "../api.js";
@@ -25,6 +25,12 @@ export default function UrlForm() {
   const [preview, setPreview] = useState(null);
   const [fetched, setFetched] = useState(false);
   const qc = useQueryClient();
+
+  const { data: suggestions } = useQuery({
+    queryKey: ["tag-suggestions"],
+    queryFn: api.getTagSuggestions,
+    staleTime: 60_000,
+  });
 
   const fetchMutation = useMutation({
     mutationFn: () => api.preview(url.trim()),
@@ -68,6 +74,7 @@ export default function UrlForm() {
       setFetched(false);
       qc.invalidateQueries({ queryKey: ["downloads"] });
       qc.invalidateQueries({ queryKey: ["download-stats"] });
+      qc.invalidateQueries({ queryKey: ["tag-suggestions"] });
     },
     onError: (e) => toast.error(e.message),
   });
@@ -173,24 +180,28 @@ export default function UrlForm() {
                   <input
                     className="input"
                     placeholder="Artist"
+                    list="artist-suggestions"
                     value={tagArtist}
                     onChange={(e) => setTagArtist(e.target.value)}
                   />
                   <input
                     className="input"
                     placeholder="Album Artist"
+                    list="album-artist-suggestions"
                     value={tagAlbumArtist}
                     onChange={(e) => setTagAlbumArtist(e.target.value)}
                   />
                   <input
                     className="input"
                     placeholder="Album"
+                    list="album-suggestions"
                     value={tagAlbum}
                     onChange={(e) => setTagAlbum(e.target.value)}
                   />
                   <input
                     className="input"
                     placeholder="Genre"
+                    list="genre-suggestions"
                     value={tagGenre}
                     onChange={(e) => setTagGenre(e.target.value)}
                   />
@@ -198,10 +209,10 @@ export default function UrlForm() {
                     className="input"
                     type="number"
                     placeholder="Year"
+                    list="year-suggestions"
                     value={tagYear}
                     onChange={(e) => setTagYear(e.target.value)}
                   />
-
                 </div>
               )}
             </div>
@@ -220,6 +231,22 @@ export default function UrlForm() {
           </div>
         </div>
       )}
+
+      <datalist id="artist-suggestions">
+        {(suggestions?.artist || []).map((v) => <option key={v} value={v} />)}
+      </datalist>
+      <datalist id="album-artist-suggestions">
+        {(suggestions?.album_artist || []).map((v) => <option key={v} value={v} />)}
+      </datalist>
+      <datalist id="album-suggestions">
+        {(suggestions?.album || []).map((v) => <option key={v} value={v} />)}
+      </datalist>
+      <datalist id="genre-suggestions">
+        {(suggestions?.genre || []).map((v) => <option key={v} value={v} />)}
+      </datalist>
+      <datalist id="year-suggestions">
+        {(suggestions?.year || []).map((v) => <option key={v} value={v} />)}
+      </datalist>
     </div>
   );
 }

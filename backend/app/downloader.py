@@ -6,6 +6,7 @@ from pathlib import Path
 import os
 
 import yt_dlp
+from yt_dlp.networking.impersonate import ImpersonateTarget
 
 from .database import SessionLocal
 from .models import Download, DownloadStatus
@@ -21,6 +22,7 @@ _lock = threading.Lock()
 # active yt-dlp instances, keyed by download id, so we can cancel them
 _active_downloads: dict[int, dict] = {}
 
+_target = ImpersonateTarget(client='chrome', version='136', os=None, os_version=None)
 
 def start_workers():
     """Idempotently spin up the background worker threads."""
@@ -52,12 +54,24 @@ def cancel_download(download_id: int):
 
 def extract_info(url: str) -> dict:
     """Fetch metadata for a URL without downloading anything."""
+    global _target
     ydl_opts = {
+        "http_client": "curl_cffi",
+        "impersonate": _target,
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
         "noplaylist": True,
         "cookiefile": "cookies.txt" if os.path.exists("cookies.txt") else None,
+        "http_headers": {
+            "User-Agent": (
+                "Mozilla/5.0 (X11; Linux x86_64) "
+                "AppleWebKit/537.36 "
+                "Chrome/120 Safari/537.36"
+                ),
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+        "verbose": True,
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
@@ -146,6 +160,7 @@ def _mark_failed(download_id: int, message: str):
 
 
 def _process_download(download_id: int):
+    global _target
     db = SessionLocal()
     try:
         row = db.get(Download, download_id)
@@ -202,6 +217,8 @@ def _process_download(download_id: int):
     format_selector = _build_format_selector(media_type, quality)
 
     ydl_opts = {
+        "http_client": "curl_cffi",
+        "impersonate": _target,
         "outtmpl": outtmpl,
         "format": format_selector,
         "progress_hooks": [progress_hook],
@@ -214,6 +231,15 @@ def _process_download(download_id: int):
         "merge_output_format": "mp4" if media_type == "video" else None,
         "writethumbnail": media_type == "audio",
         "cookiefile": "cookies.txt" if os.path.exists("cookies.txt") else None,
+        "http_headers": {
+            "User-Agent": (
+                "Mozilla/5.0 (X11; Linux x86_64) "
+                "AppleWebKit/537.36 "
+                "Chrome/120 Safari/537.36"
+                ),
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+        "verbose": True,
     }
 
     if media_type == "audio":

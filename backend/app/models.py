@@ -2,7 +2,7 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, Integer, String, Float, Text, DateTime, Enum as SAEnum, Boolean
+    Column, Integer, String, Float, Text, DateTime, Enum as SAEnum, Boolean, UniqueConstraint
 )
 
 from .database import Base
@@ -214,3 +214,28 @@ class AppSettings(Base):
         if include_secrets:
             d["navidrome_password"] = self.navidrome_password
         return d
+
+
+class TagSuggestion(Base):
+    """Standalone record of previously-used tag values, kept independent of
+    Download rows so deleting downloads doesn't erase suggestion history."""
+
+    __tablename__ = "tag_suggestions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    field = Column(String, nullable=False, index=True)   # "artist" | "album_artist" | "album" | "genre" | "year"
+    value = Column(String, nullable=False, index=True)
+    use_count = Column(Integer, default=1, nullable=False)
+    last_used_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("field", "value", name="uq_tag_suggestion_field_value"),
+    )
+
+    def to_dict(self):
+        return {
+            "field": self.field,
+            "value": self.value,
+            "use_count": self.use_count,
+            "last_used_at": self.last_used_at.isoformat() if self.last_used_at else None,
+        }

@@ -38,6 +38,9 @@ export default function DownloadCard({ item }) {
   const isComplete = item.status === "completed";
   const active = ACTIVE.has(item.status);
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteFromDisk, setDeleteFromDisk] = useState(false);
+
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["downloads"] });
     qc.invalidateQueries({ queryKey: ["download-stats"] });
@@ -48,7 +51,16 @@ export default function DownloadCard({ item }) {
     mutationFn: () => api.retryDownload(item.id),
     onSuccess: () => { toast.success("Retrying"); invalidate(); },
   });
-  const deleteMutation = useMutation({ mutationFn: () => api.deleteDownload(item.id), onSuccess: invalidate });
+
+  const deleteMutation = useMutation({ mutationFn: () => api.deleteDownload(item.id, true), onSuccess: invalidate });
+  const removeMutation = useMutation({
+    mutationFn: (deleteFile) => api.deleteDownload(item.id, deleteFile),
+    onSuccess: () => {
+      setConfirmOpen(false);
+      setDeleteFromDisk(false);
+      invalidate();
+    },
+  });
 
   return (
     <div className="panel p-3.5 flex gap-3.5 items-center">
@@ -79,15 +91,14 @@ export default function DownloadCard({ item }) {
           {Array.from({ length: SEGMENTS }).map((_, i) => (
             <div
               key={i}
-              className={`flex-1 rounded-sm border ${
-                i < lit
-                  ? isComplete
-                    ? "bg-moss-500 border-moss-500 shadow-[0_0_6px_rgba(127,174,131,0.5)]"
-                    : isError
+              className={`flex-1 rounded-sm border ${i < lit
+                ? isComplete
+                  ? "bg-moss-500 border-moss-500 shadow-[0_0_6px_rgba(127,174,131,0.5)]"
+                  : isError
                     ? "bg-rust-500 border-rust-500 shadow-[0_0_6px_rgba(193,85,76,0.5)]"
                     : "bg-brass-500 border-brass-500 shadow-[0_0_6px_rgba(217,164,65,0.5)]"
-                  : "bg-ink-950 border-ink-600"
-              }`}
+                : "bg-ink-950 border-ink-600"
+                }`}
             />
           ))}
         </div>
@@ -120,7 +131,8 @@ export default function DownloadCard({ item }) {
         {isError && (
           <button className="btn-ghost" onClick={() => retryMutation.mutate()}>Retry</button>
         )}
-        <button className="btn-ghost-danger" onClick={() => deleteMutation.mutate()}>Remove</button>
+        <button className="btn-ghost-danger" onClick={() => removeMutation.mutate()}>Remove</button>
+        <button className="btn-ghost-danger" onClick={() => deleteMutation.mutate()}>Delete</button>
       </div>
     </div>
   );
