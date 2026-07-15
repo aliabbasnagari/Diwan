@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../api.js";
 import UrlForm from "../components/UrlForm.jsx";
 import DownloadCard from "../components/DownloadCard.jsx";
+import HistoryCard from "../components/HistoryCard.jsx";
 
 const ACTIVE = new Set(["queued", "fetching_info", "downloading", "processing", "tagging"]);
 
@@ -60,7 +61,7 @@ export default function SpoolerPage() {
       ) : (
         <div className="space-y-2.5">
           {history.map((item) => (
-            <DownloadCard key={item.id} item={item} />
+            <HistoryCard key={item.id} item={item} />
           ))}
         </div>
       )}

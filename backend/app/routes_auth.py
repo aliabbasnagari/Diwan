@@ -38,7 +38,7 @@ async def login(req: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail=str(exc))
 
     if not result.get("isAdmin"):
-        raise HTTPException(status_code=403, detail="Only Navidrome admin accounts can access Crate.")
+        raise HTTPException(status_code=403, detail="Only admin accounts can access Diwan.")
 
     # Keep the Subsonic-integration credentials (used for scan triggers)
     # in sync with whoever just logged in — one login configures both.

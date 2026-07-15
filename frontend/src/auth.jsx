@@ -8,7 +8,7 @@ export function AuthProvider({ children }) {
   const [username, setUsername] = useState(null);
 
   const checkSession = useCallback(async () => {
-    const token = localStorage.getItem("crate_token");
+    const token = localStorage.getItem("diwan_token");
     if (!token) {
       setStatus("anon");
       return;
@@ -30,8 +30,8 @@ export function AuthProvider({ children }) {
       setUsername(null);
       setStatus("anon");
     };
-    window.addEventListener("crate:unauthorized", onUnauthorized);
-    return () => window.removeEventListener("crate:unauthorized", onUnauthorized);
+    window.addEventListener("diwan:unauthorized", onUnauthorized);
+    return () => window.removeEventListener("diwan:unauthorized", onUnauthorized);
   }, [checkSession]);
 
   const login = useCallback(async (u, p) => {

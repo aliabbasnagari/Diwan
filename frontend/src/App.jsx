@@ -6,6 +6,7 @@ import SpoolerPage from "./pages/SpoolerPage.jsx";
 import ConvertPage from "./pages/ConvertPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
+import TagSuggestionsPage from "./pages/TagSuggestionsPage.jsx";
 import { useAuth } from "./auth.jsx";
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
             <Route path="/" element={<LibraryPage />} />
             <Route path="/spooler" element={<SpoolerPage />} />
             <Route path="/convert" element={<ConvertPage />} />
+            <Route path="/tags" element={<TagSuggestionsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </div>

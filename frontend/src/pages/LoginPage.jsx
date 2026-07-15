@@ -35,7 +35,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-2.5 justify-center mb-8">
           <Disc3 className="w-7 h-7 text-brass-500" strokeWidth={1.75} />
-          <span className="font-display font-bold text-xl tracking-tight">Crate</span>
+          <span className="font-display font-bold text-xl tracking-tight">Diwan</span>
         </div>
 
         {notConfigured ? (
@@ -88,7 +88,7 @@ export default function LoginPage() {
             </button>
 
             <p className="text-[11px] text-parchment-700 text-center leading-relaxed">
-              Only Navidrome admin accounts can access Crate.
+              Only admin accounts can access Diwan.
             </p>
           </form>
         )}

@@ -1,4 +1,4 @@
-# Crate — a library manager for Navidrome
+# Diwan — a library manager for Navidrome
 
 A self-hosted web app that helps you build, tag, and organize a music
 library for **[Navidrome](https://www.navidrome.org/)**. It has three
@@ -169,22 +169,22 @@ set in `.env` — that's intentional, the whole app is gated on it.
 
 Two named volumes are created:
 
-- `crate-data` — SQLite DB + the download staging area + conversion output
-- `crate-music` — the library itself
+- `diwan-data` — SQLite DB + the download staging area + conversion output
+- `diwan-music` — the library itself
 
-**Point `crate-music` at wherever Navidrome reads its music from.** If
-Navidrome runs elsewhere on the same host, edit the `crate-music` volume
+**Point `diwan-music` at wherever Navidrome reads its music from.** If
+Navidrome runs elsewhere on the same host, edit the `diwan-music` volume
 line in `docker-compose.yml` to a bind mount of that same folder, e.g.:
 
 ```yaml
     volumes:
-      - crate-data:/data
+      - diwan-data:/data
       - /home/you/music:/music
 ```
 
 There's also a commented-out `navidrome` service in `docker-compose.yml`
 if you'd rather run Navidrome itself as part of the same stack, sharing
-the `crate-music` volume — uncomment it, set `NAVIDROME_URL=http://navidrome:4533`
+the `diwan-music` volume — uncomment it, set `NAVIDROME_URL=http://navidrome:4533`
 in `.env`, and you're set.
 
 To run in the background: `docker compose up --build -d`, then
@@ -242,15 +242,15 @@ npm run build                    # outputs frontend/dist
 
 ## Authentication
 
-Crate has no user system of its own. Every request to the app is gated
+Diwan has no user system of its own. Every request to the app is gated
 behind a single check: does this session belong to a Navidrome account
 with `isAdmin: true`?
 
-1. The person enters a username/password on Crate's login screen.
-2. Crate POSTs it straight to `{NAVIDROME_URL}/auth/login` — Navidrome's
+1. The person enters a username/password on Diwan's login screen.
+2. Diwan POSTs it straight to `{NAVIDROME_URL}/auth/login` — Navidrome's
    own native login endpoint, not the Subsonic API.
 3. If Navidrome accepts the credentials **and** the account is an admin,
-   Crate issues its own short signed session token (HMAC, 30-day expiry)
+   Diwan issues its own short signed session token (HMAC, 30-day expiry)
    and the browser stores it. Non-admin accounts and bad credentials are
    both rejected with a clear message.
 4. That same login also fills in the Subsonic username/password used for
@@ -276,8 +276,8 @@ In the app's **Settings** page:
    — the URL field is locked to whatever `NAVIDROME_URL` is set to.
 3. **Test connection** to confirm it's reachable.
 4. Optionally enable **auto-scan**, so Navidrome picks up new tracks the
-   moment Crate adds them, without waiting for its own scan schedule.
-5. To make artist pictures uploaded in Crate show up in Navidrome, set
+   moment Diwan adds them, without waiting for its own scan schedule.
+5. To make artist pictures uploaded in Diwan show up in Navidrome, set
    these two environment variables on the Navidrome server itself
    (Settings page shows the exact values, including your configured
    path):

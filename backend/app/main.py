@@ -12,9 +12,10 @@ from .routes_downloads import router as downloads_router
 from .routes_library import router as library_router
 from .routes_settings import router as settings_router
 from .routes_navidrome import router as navidrome_router
+from .routes_suggestions import router as suggestions_router
 from .routes_convert import router as convert_router
 
-app = FastAPI(title="Crate — Navidrome Library Manager API")
+app = FastAPI(title="Diwan — Music Library Manager API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,6 +32,7 @@ app.include_router(downloads_router)
 app.include_router(library_router, dependencies=[Depends(require_admin)])
 app.include_router(settings_router, dependencies=[Depends(require_admin)])
 app.include_router(navidrome_router, dependencies=[Depends(require_admin)])
+app.include_router(suggestions_router, dependencies=[Depends(require_admin)])
 app.include_router(convert_router, dependencies=[Depends(require_admin)])
 
 ACTIVE_DOWNLOAD_STATUSES = [

@@ -58,7 +58,7 @@ export default function UrlForm({ downloads = [] }) {
       setTagAlbumArtist(info.album_artist || info.artist || "");
       setTagAlbum(info.album || "");
       setTagGenre(info.genre || "");
-      setTagYear(info.release_year || info.year || "");
+      setTagYear(info.release_year || info.year || info.upload_date || "");
 
       setFetched(true);
     },

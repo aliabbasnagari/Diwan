@@ -2,7 +2,7 @@ import axios from "axios";
 
 const client = axios.create({ baseURL: "/api" });
 
-const TOKEN_KEY = "crate_token";
+const TOKEN_KEY = "diwan_token";
 
 export function setAuthToken(token) {
   if (token) {
@@ -30,7 +30,7 @@ client.interceptors.response.use(
   (r) => r,
   (err) => {
     if (err?.response?.status === 401) {
-      window.dispatchEvent(new Event("crate:unauthorized"));
+      window.dispatchEvent(new Event("diwan:unauthorized"));
     }
     return Promise.reject(err);
   }
@@ -58,16 +58,15 @@ export const api = {
   cancelDownload: (id) => unwrap(client.post(`/downloads/${id}/cancel`)),
   retryDownload: (id) => unwrap(client.post(`/downloads/${id}/retry`)),
   deleteDownload: (id, deleteFile = false) =>
-  unwrap(
-    client.delete(`/downloads/${id}`, {
-      params: {
-        delete_file: deleteFile,
-      },
-    })
-  ),
+    unwrap(
+      client.delete(`/downloads/${id}`, {
+        params: {
+          delete_file: deleteFile,
+        },
+      })
+    ),
   fileUrl: (id) => `/api/downloads/${id}/file?${tokenParam()}`,
   downloadStats: () => unwrap(client.get("/stats")),
-  getTagSuggestions: () => unwrap(client.get("/suggestions")), 
 
   // --- library: tracks ---
   libraryTree: () => unwrap(client.get("/library/tree")),
@@ -117,6 +116,14 @@ export const api = {
   // --- navidrome ---
   triggerScan: () => unwrap(client.post("/navidrome/scan")),
   scanStatus: () => unwrap(client.get("/navidrome/scan/status")),
+
+  // --- suggestions ---
+  getTagSuggestions: () => unwrap(client.get("/suggestions")),
+  getAllTagSuggestions: () => unwrap(client.get("/suggestions/all")),
+  createTagSuggestion: (field, value) => unwrap(client.post("/suggestions", { field, value })),
+  updateTagSuggestion: (id, patch) => unwrap(client.put(`/suggestions/${id}`, patch)),
+  deleteTagSuggestion: (id) => unwrap(client.delete(`/suggestions/${id}`)),
+  populateTagSuggestions: () => unwrap(client.post("/suggestions/populate")),
 
   // --- convert ---
   convertFormats: () => unwrap(client.get("/convert/formats")),

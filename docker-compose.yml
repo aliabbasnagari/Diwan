@@ -2,7 +2,7 @@ services:
   backend:
     build:
       context: ./backend
-    container_name: crate-backend
+    container_name: diwan-backend
     restart: unless-stopped
     environment:
       LIBRARY_DIR: /music
@@ -17,7 +17,7 @@ services:
     ports:
       - "8880:8000"
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      test: [ "CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,7 +26,7 @@ services:
   frontend:
     build:
       context: ./frontend
-    container_name: crate-frontend
+    container_name: diwan-frontend
     restart: unless-stopped
     depends_on:
       backend:
