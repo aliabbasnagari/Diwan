@@ -8,16 +8,17 @@ services:
       LIBRARY_DIR: /music
       DOWNLOAD_DIR: /data/downloads
       CONVERT_DIR: /data/conversions
-      DB_PATH: /data/downloader.db
+      DB_PATH: /diwan-data/downloader.db
       MAX_CONCURRENT_DOWNLOADS: "2"
-      NAVIDROME_URL: ${NAVIDROME_URL:?Set NAVIDROME_URL in a .env file — see .env.example}
+      NAVIDROME_URL: ${NAVIDROME_URL:-http://navidrome:4533}
     volumes:
-      - /home/opc/myapps/noorify/data:/data
-      - /home/opc/myapps/noorify/music:/music
+      - diwan-data:/diwan-data
+      - /navidrome/data:/data
+      - /navidrome/music:/music
     ports:
-      - "8880:8000"
+      - "4633:4633"
     healthcheck:
-      test: [ "CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')" ]
+      test: [ "CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4633/api/health')" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,4 +33,7 @@ services:
       backend:
         condition: service_healthy
     ports:
-      - "8881:80"
+      - "4733:80"
+
+volumes:
+  diwan-data:

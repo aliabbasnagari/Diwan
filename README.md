@@ -207,7 +207,7 @@ python3 -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 export NAVIDROME_URL=http://localhost:4533   # Windows: set NAVIDROME_URL=...
-python run.py                    # http://127.0.0.1:8000
+python run.py                    # http://127.0.0.1:4534
 ```
 
 `NAVIDROME_URL` is required — without it, `/api/auth/login` returns a
@@ -227,10 +227,10 @@ just scratch space).
 ```bash
 cd frontend
 npm install
-npm run dev                      # http://127.0.0.1:5173
+npm run dev                      # http://127.0.0.1:4535
 ```
 
-Vite proxies `/api/*` to `http://127.0.0.1:8000` in dev, so no CORS setup
+Vite proxies `/api/*` to `http://127.0.0.1:4534` in dev, so no CORS setup
 needed.
 
 ### Production build

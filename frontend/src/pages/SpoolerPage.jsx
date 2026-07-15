@@ -30,7 +30,7 @@ export default function SpoolerPage() {
         <div>
           <h1 className="font-display font-bold text-2xl">Spooler</h1>
           <p className="text-sm text-parchment-500 mt-1">
-            Pull video &amp; audio from the web with yt-dlp, straight into your library.
+            Pull video &amp; audio from the web straight into your library.
           </p>
         </div>
         <div className="flex gap-4 font-mono text-right">

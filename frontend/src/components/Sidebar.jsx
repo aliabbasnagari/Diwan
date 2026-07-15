@@ -1,6 +1,8 @@
 import { NavLink } from "react-router-dom";
-import { Disc3, Library, DownloadCloud, Settings, RefreshCcw, LogOut, User, Tag } from "lucide-react";
+import { Library, DownloadCloud, Settings, RefreshCcw, LogOut, User, Tag } from "lucide-react";
 import { useAuth } from "../auth.jsx";
+
+import logo from "../assets/logo-dark.svg";
 
 const links = [
   { to: "/", label: "Library", icon: Library, end: true },
@@ -16,8 +18,12 @@ export default function Sidebar() {
   return (
     <aside className="w-56 shrink-0 border-r border-ink-600 flex flex-col">
       <div className="px-5 py-6 flex items-center gap-2.5 border-b border-ink-600">
-        <Disc3 className="w-6 h-6 text-brass-500" strokeWidth={1.75} />
-        <span className="font-display font-bold text-lg tracking-tight">Diwan</span>
+        <img
+          src={logo}
+          alt="Diwan Logo"
+          className="h-8 w-auto"
+        />
+        <span className="font-display font-bold text-2xl tracking-tight">Diwan</span>
       </div>
 
       <nav className="flex-1 px-3 py-4 flex flex-col gap-1">

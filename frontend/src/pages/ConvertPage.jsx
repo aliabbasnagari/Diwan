@@ -93,7 +93,7 @@ export default function ConvertPage() {
       <header className="flex items-start justify-between gap-6 mb-6">
         <div>
           <h1 className="font-display font-bold text-2xl">Convert</h1>
-          <p className="text-sm text-parchment-500 mt-1">Re-encode a file into a different format with ffmpeg.</p>
+          <p className="text-sm text-parchment-500 mt-1">Re-encode a file into a different format.</p>
         </div>
         <div className="flex gap-4 font-mono text-right">
           <StatPill label="Active" value={stats?.active} />

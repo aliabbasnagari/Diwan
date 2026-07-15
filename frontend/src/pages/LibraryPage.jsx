@@ -59,7 +59,7 @@ export default function LibraryPage() {
       <header className="flex items-start justify-between gap-6 mb-6">
         <div>
           <h1 className="font-display font-bold text-2xl">Library</h1>
-          <p className="text-sm text-parchment-500 mt-1">Browse and edit the music Navidrome serves.</p>
+          <p className="text-sm text-parchment-500 mt-1">Browse and edit the music library.</p>
         </div>
         <div className="flex gap-4 font-mono text-right">
           <StatPill label="Artists" value={stats?.artist_count} />
