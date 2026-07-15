@@ -39,7 +39,7 @@ export default function SpoolerPage() {
         </div>
       </header>
 
-      <UrlForm />
+      <UrlForm downloads={downloads} />
 
       {active.length > 0 && (
         <>

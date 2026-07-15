@@ -1,13 +1,21 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Search, Download as DownloadIcon } from "lucide-react";
+import { Search, Download as DownloadIcon, AlertTriangle } from "lucide-react";
 import { api } from "../api.js";
 import { formatDuration, formatBytes } from "../utils.js";
 
 const AUDIO_FORMATS = ["mp3", "m4a", "opus", "wav", "flac"];
 
-export default function UrlForm() {
+function normalizeUrl(u) {
+  if (!u) return "";
+  let s = u.trim().toLowerCase();
+  s = s.replace(/\/+$/, ""); // trailing slash
+  s = s.replace(/^https?:\/\/(www\.)?/, "");
+  return s;
+}
+
+export default function UrlForm({ downloads = [] }) {
   const [url, setUrl] = useState("");
   const [mediaType, setMediaType] = useState("audio");
   const [quality, setQuality] = useState("best");
@@ -31,6 +39,12 @@ export default function UrlForm() {
     queryFn: api.getTagSuggestions,
     staleTime: 60_000,
   });
+
+  const duplicate = useMemo(() => {
+    const norm = normalizeUrl(url);
+    if (!norm) return null;
+    return downloads.find((d) => normalizeUrl(d.url) === norm || normalizeUrl(d.webpage_url) === norm) || null;
+  }, [url, downloads]);
 
   const fetchMutation = useMutation({
     mutationFn: () => api.preview(url.trim()),
@@ -121,6 +135,20 @@ export default function UrlForm() {
           </button>
         )}
       </div>
+
+      {duplicate && (
+        <div className="mt-2.5 flex items-center gap-2 text-xs font-mono px-3 py-2 rounded-lg bg-brass-900/30 border border-brass-700/50 text-brass-400">
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">
+            {duplicate.status === "completed"
+              ? "Already downloaded"
+              : duplicate.status === "failed" || duplicate.status === "cancelled"
+                ? "Already in history (failed/cancelled)"
+                : "Already in the spool"}
+            {duplicate.title ? ` — “${duplicate.title}”` : ""}
+          </span>
+        </div>
+      )}
 
       {fetched && (
         <div className="mt-4 space-y-4">

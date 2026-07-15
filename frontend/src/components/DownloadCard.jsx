@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Library, ExternalLink } from "lucide-react";
@@ -38,7 +39,7 @@ export default function DownloadCard({ item }) {
   const isComplete = item.status === "completed";
   const active = ACTIVE.has(item.status);
 
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [deleteFromDisk, setDeleteFromDisk] = useState(false);
 
   const invalidate = () => {
@@ -52,18 +53,32 @@ export default function DownloadCard({ item }) {
     onSuccess: () => { toast.success("Retrying"); invalidate(); },
   });
 
-  const deleteMutation = useMutation({ mutationFn: () => api.deleteDownload(item.id, true), onSuccess: invalidate });
   const removeMutation = useMutation({
-    mutationFn: (deleteFile) => api.deleteDownload(item.id, deleteFile),
+    mutationFn: (withDisk) => api.deleteDownload(item.id, withDisk),
     onSuccess: () => {
-      setConfirmOpen(false);
-      setDeleteFromDisk(false);
       invalidate();
+      setShowConfirm(false);
+      setDeleteFromDisk(false);
     },
   });
 
+  const openConfirm = () => {
+    setDeleteFromDisk(false);
+    setShowConfirm(true);
+  };
+
+  const closeConfirm = () => {
+    if (removeMutation.isPending) return;
+    setShowConfirm(false);
+    setDeleteFromDisk(false);
+  };
+
+  const confirmRemove = () => {
+    removeMutation.mutate(deleteFromDisk);
+  };
+
   return (
-    <div className="panel p-3.5 flex gap-3.5 items-center">
+    <div className="panel p-3.5 flex gap-3.5 items-center relative">
       {item.thumbnail ? (
         <img src={item.thumbnail} className="w-16 h-16 rounded-lg object-cover bg-ink-950 shrink-0" alt="" />
       ) : (
@@ -91,14 +106,15 @@ export default function DownloadCard({ item }) {
           {Array.from({ length: SEGMENTS }).map((_, i) => (
             <div
               key={i}
-              className={`flex-1 rounded-sm border ${i < lit
-                ? isComplete
-                  ? "bg-moss-500 border-moss-500 shadow-[0_0_6px_rgba(127,174,131,0.5)]"
-                  : isError
+              className={`flex-1 rounded-sm border ${
+                i < lit
+                  ? isComplete
+                    ? "bg-moss-500 border-moss-500 shadow-[0_0_6px_rgba(127,174,131,0.5)]"
+                    : isError
                     ? "bg-rust-500 border-rust-500 shadow-[0_0_6px_rgba(193,85,76,0.5)]"
                     : "bg-brass-500 border-brass-500 shadow-[0_0_6px_rgba(217,164,65,0.5)]"
-                : "bg-ink-950 border-ink-600"
-                }`}
+                  : "bg-ink-950 border-ink-600"
+              }`}
             />
           ))}
         </div>
@@ -131,9 +147,34 @@ export default function DownloadCard({ item }) {
         {isError && (
           <button className="btn-ghost" onClick={() => retryMutation.mutate()}>Retry</button>
         )}
-        <button className="btn-ghost-danger" onClick={() => removeMutation.mutate()}>Remove</button>
-        <button className="btn-ghost-danger" onClick={() => deleteMutation.mutate()}>Delete</button>
+        <button className="btn-ghost-danger" onClick={openConfirm}>Remove</button>
       </div>
+
+      {showConfirm && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-ink-950/80 rounded-lg">
+          <div className="panel p-4 w-72 flex flex-col gap-3 shadow-lg">
+            <p className="text-sm font-medium">Remove this download?</p>
+
+            <label className="flex items-center gap-2 text-xs font-mono text-parchment-700 select-none cursor-pointer">
+              <input
+                type="checkbox"
+                checked={deleteFromDisk}
+                onChange={(e) => setDeleteFromDisk(e.target.checked)}
+              />
+              Delete from disk?
+            </label>
+
+            <div className="flex justify-end gap-2 mt-1">
+              <button className="btn-ghost" onClick={closeConfirm} disabled={removeMutation.isPending}>
+                Cancel
+              </button>
+              <button className="btn-ghost-danger" onClick={confirmRemove} disabled={removeMutation.isPending}>
+                {removeMutation.isPending ? "Removing…" : "Remove"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
