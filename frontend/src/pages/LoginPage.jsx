@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { Disc3, ShieldAlert } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
+
+import logo from "../assets/logo-dark.svg";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -33,9 +35,15 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <div className="flex items-center gap-2.5 justify-center mb-8">
-          <Disc3 className="w-7 h-7 text-brass-500" strokeWidth={1.75} />
-          <span className="font-display font-bold text-xl tracking-tight">Diwan</span>
+        <div className="flex flex-col items-center justify-center mb-8">
+          <img
+            src={logo}
+            alt="Diwan Logo"
+            className="h-12 w-auto"
+          />
+          <span className="mt-2 font-display font-bold text-3xl tracking-tight text-center">
+            Diwan
+          </span>
         </div>
 
         {notConfigured ? (

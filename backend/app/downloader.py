@@ -24,6 +24,19 @@ _active_downloads: dict[int, dict] = {}
 
 _target = ImpersonateTarget(client='chrome', version='136', os=None, os_version=None)
 
+def _cookies_file() -> str | None:
+    """Return the path to the cookies file if one is uploaded and enabled."""
+    db = SessionLocal()
+    try:
+        s = settings_service.get_settings(db)
+        if s.cookies_enabled and s.cookies_file_path:
+            p = Path(s.cookies_file_path)
+            if p.exists():
+                return str(p)
+    finally:
+        db.close()
+    return None
+
 def start_workers():
     """Idempotently spin up the background worker threads."""
     global _workers_started
@@ -62,7 +75,7 @@ def extract_info(url: str) -> dict:
         "no_warnings": True,
         "skip_download": True,
         "noplaylist": True,
-        "cookiefile": "cookies.txt" if os.path.exists("cookies.txt") else None,
+        "cookiefile": _cookies_file(),
         "http_headers": {
             "User-Agent": (
                 "Mozilla/5.0 (X11; Linux x86_64) "
@@ -230,7 +243,7 @@ def _process_download(download_id: int):
         "subtitleslangs": ["en"] if subtitles else None,
         "merge_output_format": "mp4" if media_type == "video" else None,
         "writethumbnail": media_type == "audio",
-        "cookiefile": "cookies.txt" if os.path.exists("cookies.txt") else None,
+        "cookiefile": _cookies_file(),
         "http_headers": {
             "User-Agent": (
                 "Mozilla/5.0 (X11; Linux x86_64) "

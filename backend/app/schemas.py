@@ -28,6 +28,7 @@ class SettingsUpdateRequest(BaseModel):
     library_dir: Optional[str] = None
     artist_image_dir: Optional[str] = None
     max_concurrent_downloads: Optional[int] = None
+    cookies_enabled: Optional[bool] = None
     navidrome_url: Optional[str] = None
     navidrome_username: Optional[str] = None
     navidrome_password: Optional[str] = None

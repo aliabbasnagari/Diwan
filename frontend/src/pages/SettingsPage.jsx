@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, RadioTower, RefreshCw } from "lucide-react";
+import { CheckCircle2, XCircle, RadioTower, RefreshCw, Upload, Trash2, Cookie } from "lucide-react";
 import { api } from "../api.js";
 
 export default function SettingsPage() {
@@ -9,6 +9,10 @@ export default function SettingsPage() {
   const settingsQuery = useQuery({ queryKey: ["settings"], queryFn: api.getSettings });
   const [form, setForm] = useState(null);
   const [password, setPassword] = useState("");
+  const cookieInputRef = useRef(null);
+  const [cookieText, setCookieText] = useState("");
+  const [showPasteArea, setShowPasteArea] = useState(false);
+
 
   useEffect(() => {
     if (settingsQuery.data && !form) setForm(settingsQuery.data);
@@ -41,6 +45,40 @@ export default function SettingsPage() {
     onSuccess: () => toast.success("Navidrome scan triggered"),
     onError: (e) => toast.error(e.message),
   });
+
+  const cookieUploadMutation = useMutation({
+    mutationFn: (file) => api.uploadCookies(file),
+    onSuccess: (data) => {
+      toast.success("Cookies file uploaded");
+      setForm(data);
+      qc.invalidateQueries({ queryKey: ["settings"] });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const cookieDeleteMutation = useMutation({
+    mutationFn: api.deleteCookies,
+    onSuccess: (data) => {
+      toast.success("Cookies file removed");
+      setForm(data);
+      qc.invalidateQueries({ queryKey: ["settings"] });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const cookieTextMutation = useMutation({
+    mutationFn: () => api.saveCookiesText(cookieText),
+    onSuccess: (data) => {
+      toast.success("Cookies saved from pasted text");
+      setForm(data);
+      setCookieText("");
+      setShowPasteArea(false);
+      qc.invalidateQueries({ queryKey: ["settings"] });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+
 
   const scanStatusQuery = useQuery({
     queryKey: ["scan-status"],
@@ -87,6 +125,93 @@ export default function SettingsPage() {
             />
           </Field>
         </section>
+
+        <section className="panel p-5 space-y-4">
+          <p className="label-eyebrow">Cookies</p>
+          <p className="text-xs text-parchment-500 leading-relaxed">
+            Some sites (YouTube, etc.) require cookies for age-restricted or members-only content.
+            Upload a <code className="font-mono text-brass-400">cookies.txt</code> file exported from your browser
+            (Netscape format), or paste the contents directly.
+          </p>
+
+          <div className="flex items-center gap-3">
+            {form.cookies_file_path ? (
+              <>
+                <span className="flex items-center gap-1.5 text-xs font-mono text-moss-400">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> cookies.txt uploaded
+                </span>
+                <button
+                  className="btn-ghost-danger flex items-center gap-1.5 text-xs"
+                  onClick={() => cookieDeleteMutation.mutate()}
+                  disabled={cookieDeleteMutation.isPending}
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Remove
+                </button>
+              </>
+            ) : (
+              <span className="text-xs font-mono text-parchment-500">No cookies file uploaded</span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              className="btn-ghost flex items-center gap-1.5"
+              onClick={() => cookieInputRef.current?.click()}
+              disabled={cookieUploadMutation.isPending}
+            >
+              <Upload className="w-3.5 h-3.5" />
+              {cookieUploadMutation.isPending ? "Uploading…" : form.cookies_file_path ? "Replace file" : "Upload file"}
+            </button>
+            <input
+              ref={cookieInputRef}
+              type="file"
+              accept=".txt"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) cookieUploadMutation.mutate(file);
+                e.target.value = "";
+              }}
+            />
+            <button
+              className="btn-ghost flex items-center gap-1.5"
+              onClick={() => setShowPasteArea(!showPasteArea)}
+            >
+              <Cookie className="w-3.5 h-3.5" />
+              {showPasteArea ? "Cancel paste" : "Paste text"}
+            </button>
+          </div>
+
+          {showPasteArea && (
+            <div className="space-y-2">
+              <textarea
+                className="input w-full h-32 font-mono text-xs resize-y"
+                placeholder={"# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t0\tCOOKIE_NAME\tvalue"}
+                value={cookieText}
+                onChange={(e) => setCookieText(e.target.value)}
+              />
+              <button
+                className="btn-primary text-xs"
+                onClick={() => cookieTextMutation.mutate()}
+                disabled={cookieTextMutation.isPending || !cookieText.trim()}
+              >
+                {cookieTextMutation.isPending ? "Saving…" : "Save cookies"}
+              </button>
+            </div>
+          )}
+
+          {form.cookies_file_path && (
+            <label className="flex items-center gap-2 text-xs font-mono text-parchment-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!form.cookies_enabled}
+                onChange={(e) => setForm({ ...form, cookies_enabled: e.target.checked })}
+              />
+              Use cookies.txt for downloads (disable to skip without deleting the file)
+            </label>
+          )}
+        </section>
+
 
         <section className="panel p-5 space-y-3">
           <p className="label-eyebrow">Artwork &amp; Navidrome config</p>

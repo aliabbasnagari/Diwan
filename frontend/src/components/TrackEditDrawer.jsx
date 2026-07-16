@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X, Trash2, FolderTree, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../api.js";
@@ -16,11 +16,26 @@ const FIELDS = [
   { key: "discnumber", label: "Disc #" },
 ];
 
+const FIELD_DATALIST_MAP = {
+  artist: "edit-artist-suggestions",
+  albumartist: "edit-album-artist-suggestions",
+  album: "edit-album-suggestions",
+  genre: "edit-genre-suggestions",
+};
+
+
 export default function TrackEditDrawer({ track, onClose }) {
   const [form, setForm] = useState({});
   const [reorganize, setReorganize] = useState(true);
   const fileInputRef = useRef(null);
   const qc = useQueryClient();
+
+  const { data: suggestions } = useQuery({
+    queryKey: ["tag-suggestions"],
+    queryFn: api.getTagSuggestions,
+    staleTime: 60_000,
+  });
+
 
   useEffect(() => {
     if (track) {
@@ -139,6 +154,21 @@ export default function TrackEditDrawer({ track, onClose }) {
                   className="input w-full"
                   value={form[f.key] ?? ""}
                   onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
+                  list={FIELD_DATALIST_MAP[f.key] || undefined}
+                />
+                {f.hint && <span className="block text-[10.5px] text-parchment-700 mt-1 leading-snug">{f.hint}</span>}
+              </label>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {FIELDS.map((f) => (
+              <label key={f.key} className={f.key === "title" || f.key === "artist" || f.key === "album" ? "col-span-2" : ""}>
+                <span className="label-eyebrow block mb-1">{f.label}</span>
+                <input
+                  className="input w-full"
+                  value={form[f.key] ?? ""}
+                  onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
                 />
                 {f.hint && <span className="block text-[10.5px] text-parchment-700 mt-1 leading-snug">{f.hint}</span>}
               </label>
@@ -174,6 +204,19 @@ export default function TrackEditDrawer({ track, onClose }) {
           </button>
         </div>
       </div>
+
+      <datalist id="edit-artist-suggestions">
+        {(suggestions?.artist || []).map((v) => <option key={v} value={v} />)}
+      </datalist>
+      <datalist id="edit-album-artist-suggestions">
+        {(suggestions?.album_artist || []).map((v) => <option key={v} value={v} />)}
+      </datalist>
+      <datalist id="edit-album-suggestions">
+        {(suggestions?.album || []).map((v) => <option key={v} value={v} />)}
+      </datalist>
+      <datalist id="edit-genre-suggestions">
+        {(suggestions?.genre || []).map((v) => <option key={v} value={v} />)}
+      </datalist>
     </div>
   );
 }

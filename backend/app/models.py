@@ -191,6 +191,10 @@ class AppSettings(Base):
     artist_image_dir = Column(String, nullable=True)
     max_concurrent_downloads = Column(Integer, default=2)
 
+    cookies_file_path = Column(String, nullable=True)     # absolute path to the uploaded cookies.txt
+    cookies_enabled = Column(Boolean, default=False)       # toggle: use cookies.txt in yt-dlp or not
+
+
     navidrome_url = Column(String, nullable=True)
     navidrome_username = Column(String, nullable=True)
     navidrome_password = Column(String, nullable=True)
@@ -205,6 +209,8 @@ class AppSettings(Base):
             "library_dir": self.library_dir,
             "artist_image_dir": self.artist_image_dir,
             "max_concurrent_downloads": self.max_concurrent_downloads,
+            "cookies_file_path": self.cookies_file_path,
+            "cookies_enabled": bool(self.cookies_enabled),
             "navidrome_url": self.navidrome_url,
             "navidrome_url_locked": bool(NAVIDROME_URL),
             "navidrome_username": self.navidrome_username,

@@ -112,6 +112,15 @@ export const api = {
   getSettings: () => unwrap(client.get("/settings")),
   updateSettings: (patch) => unwrap(client.put("/settings", patch)),
   testNavidrome: () => unwrap(client.post("/settings/navidrome/test")),
+  uploadCookies: (file) => {
+    const form = new FormData();
+    form.append("file", file);
+    return unwrap(client.post("/settings/cookies", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }));
+  },
+  deleteCookies: () => unwrap(client.delete("/settings/cookies")),
+  saveCookiesText: (text) => unwrap(client.post("/settings/cookies/text", { text })),
 
   // --- navidrome ---
   triggerScan: () => unwrap(client.post("/navidrome/scan")),
