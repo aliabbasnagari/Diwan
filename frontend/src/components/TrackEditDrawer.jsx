@@ -23,7 +23,6 @@ const FIELD_DATALIST_MAP = {
   genre: "edit-genre-suggestions",
 };
 
-
 export default function TrackEditDrawer({ track, onClose }) {
   const [form, setForm] = useState({});
   const [reorganize, setReorganize] = useState(true);
@@ -35,7 +34,6 @@ export default function TrackEditDrawer({ track, onClose }) {
     queryFn: api.getTagSuggestions,
     staleTime: 60_000,
   });
-
 
   useEffect(() => {
     if (track) {
@@ -155,20 +153,6 @@ export default function TrackEditDrawer({ track, onClose }) {
                   value={form[f.key] ?? ""}
                   onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
                   list={FIELD_DATALIST_MAP[f.key] || undefined}
-                />
-                {f.hint && <span className="block text-[10.5px] text-parchment-700 mt-1 leading-snug">{f.hint}</span>}
-              </label>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {FIELDS.map((f) => (
-              <label key={f.key} className={f.key === "title" || f.key === "artist" || f.key === "album" ? "col-span-2" : ""}>
-                <span className="label-eyebrow block mb-1">{f.label}</span>
-                <input
-                  className="input w-full"
-                  value={form[f.key] ?? ""}
-                  onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
                 />
                 {f.hint && <span className="block text-[10.5px] text-parchment-700 mt-1 leading-snug">{f.hint}</span>}
               </label>
