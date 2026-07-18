@@ -1,3 +1,5 @@
+<a href="https://github.com/aliabbasnagari/Diwan"><img src="frontend\src\assets\logo-bright.svg" alt="Diwan logo" title="Diwan" align="right" height="60px" /></a>
+
 # Diwan — a library manager for Navidrome
 
 A self-hosted web app that helps you build, tag, and organize a music
@@ -21,6 +23,7 @@ get in. There's no separate account system to manage.
 Note: downloading content you don't have the rights to may violate a
 site's terms of service or copyright law — this tool doesn't judge, that's
 on you.
+
 
 ## Features
 
@@ -371,3 +374,46 @@ there's nothing to keep in sync after files are edited outside the app.
 For very large libraries this means list/search calls do real disk I/O
 each time; fine for a personal collection, worth knowing if you're
 pointing it at tens of thousands of files.
+
+
+## Screenshots
+
+| Login | Library |
+|-------|---------|
+| Authenticate using your **Navidrome admin** account. Diwan validates credentials directly against your Navidrome server. | Browse artists and albums, search instantly, inspect metadata, organize files, and launch the metadata editor. |
+| ![Login](https://github.com/aliabbasnagari/Diwan/blob/master/docs/screenshots/diwan_login.webp?raw=1) | ![Library](https://github.com/aliabbasnagari/Diwan/blob/master/docs/screenshots/diwan_library.webp?raw=1) |
+
+| Metadata Editor | Spooler |
+|-----------------|----------|
+| Edit tags, update album art, upload artist pictures, and reorganize files. | Paste a supported URL, preview formats, and queue downloads. |
+| ![Metadata editor](https://github.com/aliabbasnagari/Diwan/blob/master/docs/screenshots/diwan_metadata_editor.webp?raw=1) | ![Spooler](https://github.com/aliabbasnagari/Diwan/blob/master/docs/screenshots/diwan_spooler.webp?raw=1) |
+
+| Audio Download | Video Download |
+|----------------|----------------|
+| Choose a format, edit metadata if needed, and import directly into your library. | Download the highest available quality or choose a specific resolution and format. |
+| ![Audio spooler](https://github.com/aliabbasnagari/Diwan/blob/master/docs/screenshots/diwan_spooler_audio.webp?raw=1) | ![Video spooler](https://github.com/aliabbasnagari/Diwan/blob/master/docs/screenshots/diwan_spooler_video.webp?raw=1) |
+
+| Converter | Tag Suggestions |
+|-----------|-----------------|
+| Convert uploaded files, library tracks, or downloads to different formats. | Generate metadata suggestions before adding music to your library. |
+| ![Converter](https://github.com/aliabbasnagari/Diwan/blob/master/docs/screenshots/diwan_converter.webp?raw=1) | ![Tag suggestions](https://github.com/aliabbasnagari/Diwan/blob/master/docs/screenshots/diwan_tag_suggestions.webp?raw=1) |
+
+| Settings |
+|----------|
+| Configure library paths, worker concurrency, and Navidrome integration. |
+| ![Settings](https://github.com/aliabbasnagari/Diwan/blob/master/docs/screenshots/diwan_settings.webp?raw=1) |
+
+
+## Acknowledgements
+
+Diwan builds on the work of several excellent open-source projects.
+
+- **yt-dlp** — powers media extraction and downloading from hundreds of supported sites.
+  https://github.com/yt-dlp/yt-dlp
+
+- **FFmpeg** — performs all audio/video transcoding, remuxing, metadata
+  processing, and format conversion.
+  https://ffmpeg.org/
+
+A huge thank you to the maintainers and contributors of both projects for
+making tools like Diwan possible.
