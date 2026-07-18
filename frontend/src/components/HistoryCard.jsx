@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Library, ExternalLink } from "lucide-react";
+import { Library, ExternalLink, AlertTriangle } from "lucide-react";
 import { api } from "../api.js";
 import { formatDuration, formatBytes } from "../utils.js";
 
@@ -93,20 +93,26 @@ export default function HistoryCard({ item }) {
           <p className="text-[11px] font-mono text-rust-400 mt-1 truncate" title={item.error_message}>{item.error_message}</p>
         )}
 
-        {isComplete && item.library_path && (
+        {isComplete && item.file_exists && item.library_path && (
           <p className="flex items-center gap-1.5 text-[11px] font-mono text-teal-400 mt-1.5">
             <Library className="w-3 h-3" /> In library: {item.library_path}
+          </p>
+        )}
+
+        {isComplete && !item.file_exists && (
+          <p className="flex items-center gap-1.5 text-[11px] font-mono text-rust-400 mt-1.5">
+            <AlertTriangle className="w-3 h-3" /> File missing on disk: {item.filepath}
           </p>
         )}
       </div>
 
       <div className="flex flex-col gap-1.5 shrink-0">
-        {isComplete && (
+        {isComplete && item.file_exists && (
           <a href={api.fileUrl(item.id)} download className="btn-ghost flex items-center gap-1 justify-center">
             <ExternalLink className="w-3 h-3" /> Save
           </a>
         )}
-        {isError && (
+        {(isError || !item.file_exists) && (
           <button className="btn-ghost" onClick={() => retryMutation.mutate()}>Retry</button>
         )}
         <button className="btn-ghost-danger" onClick={openConfirm}>Remove</button>

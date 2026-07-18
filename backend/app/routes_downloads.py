@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Optional
+import os
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
@@ -76,8 +77,20 @@ def list_downloads(
     if status:
         q = q.filter(Download.status == status)
     q = q.order_by(Download.created_at.desc()).offset(offset).limit(limit)
-    return [row.to_dict() for row in q.all()]
 
+    results = []
+    for row in q.all():
+        d = row.to_dict()
+        # Only meaningful for completed jobs that recorded a filepath
+        d["file_exists"] = bool(
+            row.status == DownloadStatus.COMPLETED
+            and row.filepath
+            and os.path.isfile(row.filepath)
+        )
+        results.append(d)
+
+    # return [row.to_dict() for row in q.all()]
+    return results
 
 @router.get("/downloads/{download_id}")
 def get_download(download_id: int, db: Session = Depends(get_db)):
