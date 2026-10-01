@@ -38,7 +38,7 @@ def verify_token(token: str, secret: str) -> dict:
     return payload
 
 
-async def require_admin(
+def require_admin(
     authorization: Optional[str] = Header(default=None),
     token: Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
@@ -56,6 +56,9 @@ async def require_admin(
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     secret = settings_service.get_settings(db).session_secret
+    # The session is shared with the route handler for the whole request;
+    # hand the connection back now so slow handlers don't pin the pool.
+    db.rollback()
     try:
         payload = verify_token(raw, secret)
     except ValueError:

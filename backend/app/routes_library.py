@@ -14,11 +14,15 @@ router = APIRouter(prefix="/api/library", tags=["library"])
 
 
 def _lib_dir(db: Session) -> Path:
-    return settings_service.library_dir(db)
+    path = settings_service.library_dir(db)
+    db.rollback()  # release the pooled connection before slow disk scans
+    return path
 
 
 def _artist_dir(db: Session) -> Path:
-    return settings_service.artist_image_dir(db)
+    path = settings_service.artist_image_dir(db)
+    db.rollback()
+    return path
 
 
 def _resolve(db: Session, track_id: str) -> Path:
