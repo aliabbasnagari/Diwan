@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from .database import get_db
 from .schemas import TrackTagsUpdate, OrganizeRequest
 from . import settings_service
-from .library import scanner, metadata, organizer
+from .library import scanner, metadata, organizer, tracking
 
 router = APIRouter(prefix="/api/library", tags=["library"])
 
@@ -106,6 +106,7 @@ def update_track(track_id: str, req: TrackTagsUpdate, db: Session = Depends(get_
             )
         except Exception as exc:  # noqa: BLE001
             raise HTTPException(status_code=400, detail=f"Tags saved, but could not move file: {exc}")
+        tracking.sync_moved_path(db, path, new_path, lib)
 
     return scanner.track_summary(lib, new_path)
 
@@ -232,6 +233,7 @@ def organize_one(track_id: str, db: Session = Depends(get_db)):
         title=tags.get("title") or path.stem,
         track_number=tags.get("tracknumber"),
     )
+    tracking.sync_moved_path(db, path, new_path, lib)
     return scanner.track_summary(lib, new_path)
 
 
@@ -259,6 +261,7 @@ def organize_bulk(req: OrganizeRequest, db: Session = Depends(get_db)):
             )
 
             if new_path != path:
+                tracking.sync_moved_path(db, path, new_path, lib)
                 moved += 1
             else:
                 unchanged += 1

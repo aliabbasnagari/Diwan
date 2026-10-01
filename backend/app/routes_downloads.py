@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from .database import get_db
 from .models import Download, DownloadStatus, MediaType
 from .schemas import PreviewRequest, DownloadCreateRequest
-from . import downloader
+from . import downloader, settings_service
 from . import tag_suggestions
 from .auth import require_admin
 
@@ -78,16 +78,28 @@ def list_downloads(
         q = q.filter(Download.status == status)
     q = q.order_by(Download.created_at.desc()).offset(offset).limit(limit)
 
+    lib = settings_service.library_dir(db)
     results = []
+    healed = False
     for row in q.all():
-        d = row.to_dict()
         # Only meaningful for completed jobs that recorded a filepath
-        d["file_exists"] = bool(
+        exists = bool(
             row.status == DownloadStatus.COMPLETED
             and row.filepath
             and os.path.isfile(row.filepath)
         )
+        # File may have been moved within the library (e.g. by a move made
+        # outside the app): fall back to the recorded library-relative path.
+        if not exists and row.status == DownloadStatus.COMPLETED and row.library_path:
+            candidate = lib / row.library_path
+            if candidate.is_file():
+                row.filepath = str(candidate)
+                exists = healed = True
+        d = row.to_dict()
+        d["file_exists"] = exists
         results.append(d)
+    if healed:
+        db.commit()
 
     # return [row.to_dict() for row in q.all()]
     return results
