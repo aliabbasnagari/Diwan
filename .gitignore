@@ -12,3 +12,9 @@ frontend/dist/
 .env
 .DS_Store
 *.bkp*
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env

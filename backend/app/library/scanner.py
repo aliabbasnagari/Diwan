@@ -1,4 +1,5 @@
 import base64
+import threading
 from pathlib import Path
 
 from ..config import AUDIO_EXTENSIONS, FOLDER_ART_BASENAMES, IMAGE_EXTENSIONS
@@ -60,10 +61,32 @@ def _scan_files(library_dir: Path):
             yield path
 
 
+# Parsed-tag cache: reading tags (and probing for embedded art) with Mutagen
+# is the expensive part of every library request. Entries are valid for as
+# long as the file's mtime and size are unchanged, so edits made through the
+# app or outside it are picked up automatically on the next scan.
+_summary_cache: dict[tuple[str, str], tuple[tuple[int, int], dict]] = {}
+_cache_lock = threading.Lock()
+
+
 def track_summary(library_dir: Path, path: Path) -> dict:
+    stat = path.stat()
+    key = (str(library_dir), str(path))
+    fingerprint = (stat.st_mtime_ns, stat.st_size)
+    with _cache_lock:
+        hit = _summary_cache.get(key)
+    if hit and hit[0] == fingerprint:
+        return dict(hit[1])
+
+    summary = _build_summary(library_dir, path, stat)
+    with _cache_lock:
+        _summary_cache[key] = (fingerprint, summary)
+    return dict(summary)
+
+
+def _build_summary(library_dir: Path, path: Path, stat) -> dict:
     rel = str(path.resolve().relative_to(library_dir.resolve()))
     tags = metadata.read_tags(path)
-    stat = path.stat()
     return {
         "id": encode_id(rel),
         "path": rel,
@@ -86,7 +109,16 @@ def track_summary(library_dir: Path, path: Path) -> dict:
 
 
 def scan_flat(library_dir: Path) -> list[dict]:
-    return [track_summary(library_dir, p) for p in _scan_files(library_dir)]
+    paths = list(_scan_files(library_dir))
+    results = [track_summary(library_dir, p) for p in paths]
+
+    # forget cache entries for files that were deleted/moved away
+    lib_key = str(library_dir)
+    live = {str(p) for p in paths}
+    with _cache_lock:
+        for key in [k for k in _summary_cache if k[0] == lib_key and k[1] not in live]:
+            del _summary_cache[key]
+    return results
 
 
 def artist_picture_path(artist_image_dir: Path, artist_name: str) -> Path | None:
