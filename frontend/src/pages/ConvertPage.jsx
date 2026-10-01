@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Upload, RefreshCcw as ConvertIcon } from "lucide-react";
 import { api } from "../api.js";
 import ConversionCard from "../components/ConversionCard.jsx";
+import Labeled from "../components/Labeled.jsx";
 
 const AUDIO_EXT = new Set(["mp3", "flac", "m4a", "ogg", "opus", "wav", "wma", "aac"]);
 const ACTIVE = new Set(["queued", "converting"]);
@@ -146,15 +147,18 @@ export default function ConvertPage() {
         )}
 
         {sourceKind === "library" && (
-          <select className="select w-full" value={libraryTrackId} onChange={(e) => setLibraryTrackId(e.target.value)}>
-            <option value="">Select a track…</option>
-            {(libraryQuery.data || []).map((t) => (
-              <option key={t.id} value={t.id}>{t.artist} — {t.title} ({t.ext})</option>
-            ))}
-          </select>
+          <Labeled label="Library track">
+            <select className="select w-full" value={libraryTrackId} onChange={(e) => setLibraryTrackId(e.target.value)}>
+              <option value="">Select a track…</option>
+              {(libraryQuery.data || []).map((t) => (
+                <option key={t.id} value={t.id}>{t.artist} — {t.title} ({t.ext})</option>
+              ))}
+            </select>
+          </Labeled>
         )}
 
         {sourceKind === "download" && (
+          <Labeled label="Completed download">
           <select
             className="select w-full"
             value={downloadId}
@@ -170,29 +174,36 @@ export default function ConvertPage() {
               <option key={d.id} value={d.id}>{d.title || d.url} ({d.media_type})</option>
             ))}
           </select>
+          </Labeled>
         )}
 
-        <div className="flex items-center gap-3 flex-wrap pt-1">
-          <select className="select" value={targetFormat} onChange={(e) => setTargetFormat(e.target.value)}>
-            {formatList.map((f) => (
-              <option key={f} value={f}>{f.toUpperCase()}</option>
-            ))}
-          </select>
-
-          {audioFormats.includes(targetFormat) && !isLossless && (
-            <select className="select" value={targetBitrate} onChange={(e) => setTargetBitrate(e.target.value)}>
-              {bitrates.map((b) => (
-                <option key={b} value={b}>{b}</option>
+        <div className="flex items-end gap-3 flex-wrap pt-1">
+          <Labeled label="Target format">
+            <select className="select" value={targetFormat} onChange={(e) => setTargetFormat(e.target.value)}>
+              {formatList.map((f) => (
+                <option key={f} value={f}>{f.toUpperCase()}</option>
               ))}
             </select>
+          </Labeled>
+
+          {audioFormats.includes(targetFormat) && !isLossless && (
+            <Labeled label="Bitrate">
+              <select className="select" value={targetBitrate} onChange={(e) => setTargetBitrate(e.target.value)}>
+                {bitrates.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+            </Labeled>
           )}
 
           {videoFormats.includes(targetFormat) && (
-            <select className="select" value={targetResolution} onChange={(e) => setTargetResolution(e.target.value)}>
-              {resolutions.map((r) => (
-                <option key={r} value={r}>{r === "source" ? "Original resolution" : `${r}p`}</option>
-              ))}
-            </select>
+            <Labeled label="Resolution">
+              <select className="select" value={targetResolution} onChange={(e) => setTargetResolution(e.target.value)}>
+                {resolutions.map((r) => (
+                  <option key={r} value={r}>{r === "source" ? "Original resolution" : `${r}p`}</option>
+                ))}
+              </select>
+            </Labeled>
           )}
 
           {audioFormats.includes(targetFormat) && (

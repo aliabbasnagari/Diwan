@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, X, Check, FolderSync } from "lucide-react";
 import { api } from "../api.js";
+import Labeled from "../components/Labeled.jsx";
 
 const FIELDS = [
     { value: "artist", label: "Artist" },
@@ -131,16 +132,18 @@ export default function TagSuggestionsPage() {
                 </div>
 
                 {/* Add bar */}
-                <div className="flex items-center gap-3 px-5 py-3 border-b border-ink-600 bg-ink-800/60">
-                    <input
-                        className="input flex-1"
-                        placeholder={`Add ${FIELDS.find(f => f.value === activeTab)?.label.toLowerCase()}…`}
-                        value={addingValue}
-                        onChange={(e) => setAddingValue(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && addingValue.trim()) createMut.mutate();
-                        }}
-                    />
+                <div className="flex items-end gap-3 px-5 py-3 border-b border-ink-600 bg-ink-800/60">
+                    <Labeled label={`New ${FIELDS.find(f => f.value === activeTab)?.label.toLowerCase()} suggestion`} className="flex-1">
+                        <input
+                            className="input w-full"
+                            placeholder={`Add ${FIELDS.find(f => f.value === activeTab)?.label.toLowerCase()}…`}
+                            value={addingValue}
+                            onChange={(e) => setAddingValue(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && addingValue.trim()) createMut.mutate();
+                            }}
+                        />
+                    </Labeled>
                     <button
                         className="btn-primary flex items-center gap-1.5 py-2"
                         disabled={!addingValue.trim() || createMut.isPending}
@@ -163,6 +166,7 @@ export default function TagSuggestionsPage() {
                                             <input
                                                 className="bg-transparent text-sm font-mono text-parchment-100 outline-none px-2 py-0.5 w-40"
                                                 autoFocus
+                                                aria-label="Edit suggestion"
                                                 value={editingValue}
                                                 onChange={(e) => setEditingValue(e.target.value)}
                                                 onKeyDown={(e) => {

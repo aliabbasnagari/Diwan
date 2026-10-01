@@ -69,15 +69,19 @@ export default function LibraryPage() {
         </div>
       </header>
 
-      <div className="flex items-center gap-2 mb-6">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-parchment-700" />
-          <input
-            className="input w-full pl-10"
-            placeholder="Search title, artist, album…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      <div className="flex items-end gap-2 mb-6">
+        <div className="flex-1">
+          <label htmlFor="library-search" className="label-eyebrow block mb-1">Search library</label>
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-parchment-700" />
+            <input
+              id="library-search"
+              className="input w-full pl-10"
+              placeholder="Search title, artist, album…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
         <button className="btn-ghost flex items-center gap-1.5" onClick={refresh}>
           <RefreshCw className="w-3.5 h-3.5" /> Refresh

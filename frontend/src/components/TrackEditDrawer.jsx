@@ -4,6 +4,7 @@ import { X, Trash2, FolderTree, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../api.js";
 import { formatDuration, formatBytes } from "../utils.js";
+import SuggestInput from "./SuggestInput.jsx";
 
 const FIELDS = [
   { key: "title", label: "Title" },
@@ -16,11 +17,12 @@ const FIELDS = [
   { key: "discnumber", label: "Disc #" },
 ];
 
-const FIELD_DATALIST_MAP = {
-  artist: "edit-artist-suggestions",
-  albumartist: "edit-album-artist-suggestions",
-  album: "edit-album-suggestions",
-  genre: "edit-genre-suggestions",
+const FIELD_SUGGESTION_KEY = {
+  artist: "artist",
+  albumartist: "album_artist",
+  album: "album",
+  genre: "genre",
+  date: "year",
 };
 
 export default function TrackEditDrawer({ track, onClose }) {
@@ -146,16 +148,16 @@ export default function TrackEditDrawer({ track, onClose }) {
 
           <div className="grid grid-cols-2 gap-3">
             {FIELDS.map((f) => (
-              <label key={f.key} className={f.key === "title" || f.key === "artist" || f.key === "album" ? "col-span-2" : ""}>
-                <span className="label-eyebrow block mb-1">{f.label}</span>
-                <input
-                  className="input w-full"
+              <div key={f.key} className={f.key === "title" || f.key === "artist" || f.key === "album" ? "col-span-2" : ""}>
+                <SuggestInput
+                  label={f.label}
                   value={form[f.key] ?? ""}
                   onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
-                  list={FIELD_DATALIST_MAP[f.key] || undefined}
+                  suggestions={suggestions?.[FIELD_SUGGESTION_KEY[f.key]] || []}
+                  multi={f.key === "artist"}
                 />
                 {f.hint && <span className="block text-[10.5px] text-parchment-700 mt-1 leading-snug">{f.hint}</span>}
-              </label>
+              </div>
             ))}
           </div>
 
@@ -188,19 +190,6 @@ export default function TrackEditDrawer({ track, onClose }) {
           </button>
         </div>
       </div>
-
-      <datalist id="edit-artist-suggestions">
-        {(suggestions?.artist || []).map((v) => <option key={v} value={v} />)}
-      </datalist>
-      <datalist id="edit-album-artist-suggestions">
-        {(suggestions?.album_artist || []).map((v) => <option key={v} value={v} />)}
-      </datalist>
-      <datalist id="edit-album-suggestions">
-        {(suggestions?.album || []).map((v) => <option key={v} value={v} />)}
-      </datalist>
-      <datalist id="edit-genre-suggestions">
-        {(suggestions?.genre || []).map((v) => <option key={v} value={v} />)}
-      </datalist>
     </div>
   );
 }

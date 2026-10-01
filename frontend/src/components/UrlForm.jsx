@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { Search, Download as DownloadIcon, AlertTriangle } from "lucide-react";
 import { api } from "../api.js";
 import { formatDuration, formatBytes } from "../utils.js";
+import SuggestInput from "./SuggestInput.jsx";
+import Labeled from "./Labeled.jsx";
 
 const AUDIO_FORMATS = ["mp3", "m4a", "opus", "wav", "flac"];
 
@@ -109,14 +111,16 @@ export default function UrlForm({ downloads = [] }) {
 
   return (
     <div className="panel p-5">
-      <div className="flex gap-2">
-        <input
-          className="input flex-1"
-          placeholder="Paste a video / audio URL…"
-          value={url}
-          onChange={handleUrlChange}
-          onKeyDown={handleKeyDown}
-        />
+      <div className="flex gap-2 items-end">
+        <Labeled label="Media URL" className="flex-1">
+          <input
+            className="input w-full"
+            placeholder="Paste a video / audio URL…"
+            value={url}
+            onChange={handleUrlChange}
+            onKeyDown={handleKeyDown}
+          />
+        </Labeled>
         {!fetched ? (
           <button
             className="btn-primary flex items-center gap-1.5 shrink-0"
@@ -152,7 +156,7 @@ export default function UrlForm({ downloads = [] }) {
 
       {fetched && (
         <div className="mt-4 space-y-4">
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-end gap-3 flex-wrap">
             <div className="flex border border-ink-600 rounded-lg overflow-hidden">
               {["video", "audio"].map((t) => (
                 <button
@@ -167,20 +171,24 @@ export default function UrlForm({ downloads = [] }) {
             </div>
 
             {mediaType === "video" ? (
-              <select className="select" value={quality} onChange={(e) => setQuality(e.target.value)}>
-                {qualities.map((q) => (
-                  <option key={q.value} value={q.value}>
-                    {q.label}
-                    {q.filesize ? ` · ${formatBytes(q.filesize)}` : ""}
-                  </option>
-                ))}
-              </select>
+              <Labeled label="Quality">
+                <select className="select" value={quality} onChange={(e) => setQuality(e.target.value)}>
+                  {qualities.map((q) => (
+                    <option key={q.value} value={q.value}>
+                      {q.label}
+                      {q.filesize ? ` · ${formatBytes(q.filesize)}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </Labeled>
             ) : (
-              <select className="select" value={audioFormat} onChange={(e) => setAudioFormat(e.target.value)}>
-                {AUDIO_FORMATS.map((f) => (
-                  <option key={f} value={f}>{f.toUpperCase()}</option>
-                ))}
-              </select>
+              <Labeled label="Audio format">
+                <select className="select" value={audioFormat} onChange={(e) => setAudioFormat(e.target.value)}>
+                  {AUDIO_FORMATS.map((f) => (
+                    <option key={f} value={f}>{f.toUpperCase()}</option>
+                  ))}
+                </select>
+              </Labeled>
             )}
 
             {mediaType === "video" && (
@@ -199,45 +207,48 @@ export default function UrlForm({ downloads = [] }) {
               </label>
               {addToLibrary && (
                 <div className="grid grid-cols-3 gap-2">
-                  <input
-                    className="input"
-                    placeholder="Title"
-                    value={tagTitle}
-                    onChange={(e) => setTagTitle(e.target.value)}
-                  />
-                  <input
-                    className="input"
+                  <Labeled label="Title">
+                    <input
+                      className="input w-full"
+                      placeholder="Title"
+                      value={tagTitle}
+                      onChange={(e) => setTagTitle(e.target.value)}
+                    />
+                  </Labeled>
+                  <SuggestInput
+                    label="Artist"
                     placeholder="Artist"
-                    list="artist-suggestions"
+                    suggestions={suggestions?.artist || []}
+                    multi
                     value={tagArtist}
                     onChange={(e) => setTagArtist(e.target.value)}
                   />
-                  <input
-                    className="input"
+                  <SuggestInput
+                    label="Album artist"
                     placeholder="Album Artist"
-                    list="album-artist-suggestions"
+                    suggestions={suggestions?.album_artist || []}
                     value={tagAlbumArtist}
                     onChange={(e) => setTagAlbumArtist(e.target.value)}
                   />
-                  <input
-                    className="input"
+                  <SuggestInput
+                    label="Album"
                     placeholder="Album"
-                    list="album-suggestions"
+                    suggestions={suggestions?.album || []}
                     value={tagAlbum}
                     onChange={(e) => setTagAlbum(e.target.value)}
                   />
-                  <input
-                    className="input"
+                  <SuggestInput
+                    label="Genre"
                     placeholder="Genre"
-                    list="genre-suggestions"
+                    suggestions={suggestions?.genre || []}
                     value={tagGenre}
                     onChange={(e) => setTagGenre(e.target.value)}
                   />
-                  <input
-                    className="input"
+                  <SuggestInput
+                    label="Year"
                     type="number"
                     placeholder="Year"
-                    list="year-suggestions"
+                    suggestions={suggestions?.year || []}
                     value={tagYear}
                     onChange={(e) => setTagYear(e.target.value)}
                   />
@@ -259,22 +270,6 @@ export default function UrlForm({ downloads = [] }) {
           </div>
         </div>
       )}
-
-      <datalist id="artist-suggestions">
-        {(suggestions?.artist || []).map((v) => <option key={v} value={v} />)}
-      </datalist>
-      <datalist id="album-artist-suggestions">
-        {(suggestions?.album_artist || []).map((v) => <option key={v} value={v} />)}
-      </datalist>
-      <datalist id="album-suggestions">
-        {(suggestions?.album || []).map((v) => <option key={v} value={v} />)}
-      </datalist>
-      <datalist id="genre-suggestions">
-        {(suggestions?.genre || []).map((v) => <option key={v} value={v} />)}
-      </datalist>
-      <datalist id="year-suggestions">
-        {(suggestions?.year || []).map((v) => <option key={v} value={v} />)}
-      </datalist>
     </div>
   );
 }

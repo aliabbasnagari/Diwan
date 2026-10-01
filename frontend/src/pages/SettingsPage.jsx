@@ -184,12 +184,15 @@ export default function SettingsPage() {
 
           {showPasteArea && (
             <div className="space-y-2">
-              <textarea
-                className="input w-full h-32 font-mono text-xs resize-y"
-                placeholder={"# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t0\tCOOKIE_NAME\tvalue"}
-                value={cookieText}
-                onChange={(e) => setCookieText(e.target.value)}
-              />
+              <label className="block">
+                <span className="label-eyebrow block mb-1">cookies.txt contents</span>
+                <textarea
+                  className="input w-full h-32 font-mono text-xs resize-y"
+                  placeholder={"# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t0\tCOOKIE_NAME\tvalue"}
+                  value={cookieText}
+                  onChange={(e) => setCookieText(e.target.value)}
+                />
+              </label>
               <button
                 className="btn-primary text-xs"
                 onClick={() => cookieTextMutation.mutate()}
