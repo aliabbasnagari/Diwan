@@ -15,6 +15,7 @@ const FIELDS = [
   { key: "date", label: "Year" },
   { key: "tracknumber", label: "Track #" },
   { key: "discnumber", label: "Disc #" },
+  { key: "comment", label: "Comment" },
 ];
 
 const FIELD_SUGGESTION_KEY = {
@@ -48,6 +49,7 @@ export default function TrackEditDrawer({ track, onClose }) {
         date: track.date || "",
         tracknumber: track.tracknumber || "",
         discnumber: track.discnumber || "",
+        comment: track.comment || "",
       });
     }
   }, [track]);
@@ -148,7 +150,7 @@ export default function TrackEditDrawer({ track, onClose }) {
 
           <div className="grid grid-cols-2 gap-3">
             {FIELDS.map((f) => (
-              <div key={f.key} className={f.key === "title" || f.key === "artist" || f.key === "album" ? "col-span-2" : ""}>
+              <div key={f.key} className={f.key === "title" || f.key === "artist" || f.key === "album" || f.key === "comment" ? "col-span-2" : ""}>
                 <SuggestInput
                   label={f.label}
                   value={form[f.key] ?? ""}

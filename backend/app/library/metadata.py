@@ -9,7 +9,7 @@ from typing import Optional
 
 from mutagen import File as MutagenFile
 from mutagen.easyid3 import EasyID3
-from mutagen.id3 import ID3, APIC, ID3NoHeaderError
+from mutagen.id3 import ID3, APIC, COMM, ID3NoHeaderError
 from mutagen.flac import FLAC, Picture
 from mutagen.mp4 import MP4, MP4Cover
 from mutagen.oggvorbis import OggVorbis
@@ -18,7 +18,28 @@ from PIL import Image
 
 from ..config import ALBUM_ART_MAX_SIZE
 
-EASY_FIELDS = ["title", "artist", "album", "albumartist", "genre", "date", "tracknumber", "discnumber"]
+EASY_FIELDS = ["title", "artist", "album", "albumartist", "genre", "date", "tracknumber", "discnumber", "comment"]
+
+
+# EasyID3 has no "comment" key out of the box (EasyMP4 and Vorbis/FLAC do).
+# Map it to the COMM frame with an empty description — the plain "Comment"
+# field taggers show — and leave other COMM frames (e.g. iTunNORM) alone.
+def _comment_get(id3, key):
+    return [t for f in id3.getall("COMM") if f.desc == "" for t in f.text]
+
+
+def _comment_set(id3, key, value):
+    _comment_delete(id3, key)
+    id3.add(COMM(encoding=3, lang="eng", desc="", text=list(value)))
+
+
+def _comment_delete(id3, key):
+    for f in id3.getall("COMM"):
+        if f.desc == "":
+            id3.delall(f.HashKey)
+
+
+EasyID3.RegisterKey("comment", _comment_get, _comment_set, _comment_delete)
 
 # "artist" is written/read as genuinely multiple tag values (multiple ID3
 # TPE1 values, multiple Vorbis ARTIST comments, etc.) so Navidrome and

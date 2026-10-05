@@ -44,6 +44,7 @@ class TrackTagsUpdate(BaseModel):
     date: Optional[str] = None
     tracknumber: Optional[str] = None
     discnumber: Optional[str] = None
+    comment: Optional[str] = None
     reorganize: bool = True   # move/rename the file to match Artist/Album/Title if tags changed
 
 

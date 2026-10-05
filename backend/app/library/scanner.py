@@ -100,6 +100,7 @@ def _build_summary(library_dir: Path, path: Path, stat) -> dict:
         "date": tags["date"],
         "tracknumber": tags["tracknumber"],
         "discnumber": tags["discnumber"],
+        "comment": tags["comment"],
         "duration": tags["duration"],
         "bitrate": tags["bitrate"],
         "has_art": tags["has_art"],
