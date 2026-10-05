@@ -4,15 +4,17 @@ import { api } from "../../api.js";
 
 const RULER_H = 22;
 const LANE_GAP = 6;
-const MIN_VIEW = 0.02; // seconds — deepest zoom
+const MIN_VIEW = 0.02;    // seconds — deepest zoom
+const MIN_RANGE = 0.01;   // seconds — smallest allowed trim range
+const HANDLE_HIT = 8;     // px either side of a handle that grabs it
 const TICK_STEPS = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1800];
 
 const COLORS = {
   bg: "#141310",
   center: "#3a352a",
   wave: "#d9a441",
-  waveSelected: "#efe9df",
-  selection: "rgba(230, 180, 92, 0.22)",
+  dim: "rgba(20, 19, 16, 0.62)",
+  handle: "#e6b45c",
   tick: "#5a5342",
   label: "#9a9284",
 };
@@ -22,6 +24,13 @@ export function formatTime(t, decimals = 1) {
   const m = Math.floor(t / 60);
   const s = t - m * 60;
   return `${m}:${s.toFixed(decimals).padStart(decimals ? 3 + decimals : 2, "0")}`;
+}
+
+/** "1:23.4", "83.4" or "1:02:03" -> seconds, or null if it doesn't parse. */
+export function parseTime(text) {
+  const parts = String(text).trim().split(":");
+  if (parts.length > 3 || parts.some((p) => p === "" || Number.isNaN(Number(p)))) return null;
+  return parts.reduce((acc, p) => acc * 60 + Number(p), 0);
 }
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -37,7 +46,7 @@ export function zoomView(view, duration, factor, anchor) {
 
 export default function Waveform({
   sessionId, version, duration, channels, view, onViewChange,
-  selection, onSelect, onSeek, audioRef, height = 260,
+  range, onRangeChange, onSeek, audioRef, height = 240,
 }) {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
@@ -46,7 +55,6 @@ export default function Waveform({
 
   const viewLen = Math.max(view.end - view.start, 1e-6);
 
-  // keep canvas width in sync with its container
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -111,35 +119,41 @@ export default function Waveform({
       if (!lane) continue;
       const n = data.buckets;
       const span = (data.end - data.start) / n;
+      ctx.fillStyle = COLORS.wave;
       for (let i = 0; i < n; i++) {
         const t0 = data.start + i * span;
         const x0 = xOf(t0);
         const x1 = xOf(t0 + span);
-        const mn = lane[i * 2];
-        const mx = lane[i * 2 + 1];
-        const inSel = selection && t0 + span / 2 >= selection.start && t0 + span / 2 <= selection.end;
-        ctx.fillStyle = inSel ? COLORS.waveSelected : COLORS.wave;
-        const y0 = mid - mx * (laneH / 2);
-        const y1 = mid - mn * (laneH / 2);
+        const y0 = mid - lane[i * 2 + 1] * (laneH / 2);
+        const y1 = mid - lane[i * 2] * (laneH / 2);
         ctx.fillRect(x0, y0, Math.max(1, x1 - x0), Math.max(1, y1 - y0));
       }
     }
 
-    // selection overlay
-    if (selection) {
-      const x0 = clamp(xOf(selection.start), 0, width);
-      const x1 = clamp(xOf(selection.end), 0, width);
-      ctx.fillStyle = COLORS.selection;
-      ctx.fillRect(x0, RULER_H, x1 - x0, height - RULER_H);
-      ctx.fillStyle = COLORS.wave;
-      ctx.fillRect(x0, RULER_H, 1, height - RULER_H);
-      ctx.fillRect(x1 - 1, RULER_H, 1, height - RULER_H);
-    }
-  }, [data, view, viewLen, selection, width, height, channels]);
+    // dim everything outside the kept range, then draw the two handles
+    const xs = xOf(range.start);
+    const xe = xOf(range.end);
+    ctx.fillStyle = COLORS.dim;
+    if (xs > 0) ctx.fillRect(0, RULER_H, Math.min(xs, width), height - RULER_H);
+    if (xe < width) ctx.fillRect(Math.max(xe, 0), RULER_H, width - Math.max(xe, 0), height - RULER_H);
+
+    ctx.fillStyle = COLORS.handle;
+    [[xs, -1], [xe, 1]].forEach(([x, dir]) => {
+      if (x < -6 || x > width + 6) return;
+      ctx.fillRect(x - (dir < 0 ? 0 : 2), RULER_H, 2, height - RULER_H);
+      // grip tab on the side facing the kept region
+      const tabX = dir < 0 ? x : x - 10;
+      ctx.fillRect(tabX, RULER_H, 10, 18);
+      ctx.fillStyle = COLORS.bg;
+      ctx.fillRect(tabX + 3 + (dir < 0 ? 0 : 1), RULER_H + 4, 1, 10);
+      ctx.fillRect(tabX + 6 + (dir < 0 ? 0 : 1), RULER_H + 4, 1, 10);
+      ctx.fillStyle = COLORS.handle;
+    });
+  }, [data, view, viewLen, range, width, height, channels]);
 
   // keep the latest props reachable from the non-React event handlers below
   const latest = useRef({});
-  latest.current = { view, viewLen, duration, onViewChange, selection, onSelect, onSeek, width };
+  latest.current = { view, viewLen, duration, onViewChange, range, onRangeChange, onSeek, width };
 
   // ---- playhead (updated outside React so it doesn't re-render at 60fps) ----
   useEffect(() => {
@@ -150,7 +164,6 @@ export default function Waveform({
       const { view: v, viewLen: len, width: w, onViewChange: change, duration: dur } = latest.current;
       if (a && el) {
         const t = a.currentTime;
-        // follow the playhead when it runs off the right edge during playback
         if (!a.paused && t > v.end && len < dur) {
           const start = clamp(t, 0, dur - len);
           change({ start, end: start + len });
@@ -186,7 +199,23 @@ export default function Waveform({
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
-  // ---- click = move cursor, drag = select, shift+click = extend selection ----
+  // which handle (if any) is under this x position
+  function handleAt(clientX) {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const { view: v, viewLen: len, range: r } = latest.current;
+    const xOf = (t) => rect.left + ((t - v.start) / len) * rect.width;
+    const ds = Math.abs(clientX - xOf(r.start));
+    const de = Math.abs(clientX - xOf(r.end));
+    if (Math.min(ds, de) > HANDLE_HIT) return null;
+    return ds <= de ? "start" : "end";
+  }
+
+  function onMouseMove(e) {
+    if (e.buttons) return;
+    canvasRef.current.style.cursor = handleAt(e.clientX) ? "col-resize" : "text";
+  }
+
+  // click = move cursor · drag = new range · drag a handle = adjust · shift+click = move nearest handle
   function onMouseDown(e) {
     if (e.button !== 0) return;
     const rect = canvasRef.current.getBoundingClientRect();
@@ -194,28 +223,42 @@ export default function Waveform({
       const { view: v, viewLen: len, duration: dur } = latest.current;
       return clamp(v.start + ((clientX - rect.left) / rect.width) * len, 0, dur);
     };
+    const setEdge = (edge, t) => {
+      const { range: r, duration: dur } = latest.current;
+      latest.current.onRangeChange(edge === "start"
+        ? { start: clamp(t, 0, r.end - MIN_RANGE), end: r.end }
+        : { start: r.start, end: clamp(t, r.start + MIN_RANGE, dur) });
+    };
+
     const t0 = timeAt(e.clientX);
+    const grabbed = handleAt(e.clientX);
+
+    if (grabbed || e.shiftKey) {
+      const { range: r } = latest.current;
+      const edge = grabbed ?? (Math.abs(t0 - r.start) < Math.abs(t0 - r.end) ? "start" : "end");
+      setEdge(edge, t0);
+      const move = (ev) => setEdge(edge, timeAt(ev.clientX));
+      const up = () => {
+        window.removeEventListener("mousemove", move);
+        window.removeEventListener("mouseup", up);
+      };
+      window.addEventListener("mousemove", move);
+      window.addEventListener("mouseup", up);
+      return;
+    }
+
     const startX = e.clientX;
-    const sel = latest.current.selection;
-    const extending = e.shiftKey && !!sel;
-    const anchor = extending ? (Math.abs(t0 - sel.start) < Math.abs(t0 - sel.end) ? sel.end : sel.start) : t0;
-    let dragging = extending;
-
-    const apply = (t) => latest.current.onSelect({ start: Math.min(anchor, t), end: Math.max(anchor, t) });
-    if (extending) apply(t0);
-
+    let dragging = false;
     const move = (ev) => {
       if (!dragging && Math.abs(ev.clientX - startX) < 3) return;
       dragging = true;
-      apply(timeAt(ev.clientX));
+      const t = timeAt(ev.clientX);
+      if (Math.abs(t - t0) >= MIN_RANGE) latest.current.onRangeChange({ start: Math.min(t0, t), end: Math.max(t0, t) });
     };
     const up = () => {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
-      if (!dragging) {
-        latest.current.onSelect(null);
-        latest.current.onSeek(t0);
-      }
+      if (!dragging) latest.current.onSeek(t0);
     };
     window.addEventListener("mousemove", move);
     window.addEventListener("mouseup", up);
@@ -230,6 +273,7 @@ export default function Waveform({
           ref={canvasRef}
           style={{ width: "100%", height, display: "block", cursor: "text" }}
           onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
         />
         <div
           ref={headRef}

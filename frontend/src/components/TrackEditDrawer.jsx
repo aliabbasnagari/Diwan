@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { X, Trash2, FolderTree, Upload, AudioWaveform } from "lucide-react";
+import { X, Trash2, FolderTree, Upload, Scissors } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../api.js";
 import { formatDuration, formatBytes } from "../utils.js";
@@ -186,9 +186,9 @@ export default function TrackEditDrawer({ track, onClose }) {
           <button
             className="btn-ghost flex items-center gap-1.5"
             onClick={() => navigate(`/editor?track=${track.id}`)}
-            title="Open this track in the audio editor"
+            title="Trim this track"
           >
-            <AudioWaveform className="w-3.5 h-3.5" />
+            <Scissors className="w-3.5 h-3.5" />
           </button>
           <button
             className="btn-ghost-danger flex items-center gap-1.5"

@@ -52,15 +52,8 @@ class EditorSessionCreate(BaseModel):
     track_id: str
 
 
-class EditorEffectRequest(BaseModel):
-    effect: str
-    params: dict = Field(default_factory=dict)
-    start: Optional[float] = None   # selection in seconds; none = whole track
-    end: Optional[float] = None
-
-
 class EditorEditRequest(BaseModel):
-    op: str   # trim | delete | cut | copy | paste | insert_silence
+    op: str   # trim (keep selection) | delete (remove selection) | insert_silence | trim_silence
     start: Optional[float] = None
     end: Optional[float] = None
     position: Optional[float] = None

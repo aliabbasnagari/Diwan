@@ -152,19 +152,16 @@ export const api = {
   conversionFileUrl: (id) => `/api/convert/jobs/${id}/file?${tokenParam()}`,
   conversionStats: () => unwrap(client.get("/convert/stats")),
 
-  // --- editor (ffmpeg-backed waveform editor; edits live in a server session until saved) ---
-  editorEffects: () => unwrap(client.get("/editor/effects")),
+  // --- editor (ffmpeg-backed trimmer; edits live in a server session until saved) ---
+  editorOptions: () => unwrap(client.get("/editor/options")),
   editorOpen: (trackId) => unwrap(client.post("/editor/sessions", { track_id: trackId })),
   editorGet: (sid) => unwrap(client.get(`/editor/sessions/${sid}`)),
   editorClose: (sid) => unwrap(client.delete(`/editor/sessions/${sid}`)),
   editorPeaks: (sid, { start, end, buckets }) =>
     unwrap(client.get(`/editor/sessions/${sid}/peaks`, { params: { start, end, buckets } })),
-  editorEffect: (sid, body) => unwrap(client.post(`/editor/sessions/${sid}/effect`, body)),
   editorEdit: (sid, body) => unwrap(client.post(`/editor/sessions/${sid}/edit`, body)),
   editorUndo: (sid) => unwrap(client.post(`/editor/sessions/${sid}/undo`)),
   editorRedo: (sid) => unwrap(client.post(`/editor/sessions/${sid}/redo`)),
-  editorPreview: (sid, body) => unwrap(client.post(`/editor/sessions/${sid}/preview`, body)),
   editorSave: (sid, body) => unwrap(client.post(`/editor/sessions/${sid}/save`, body)),
   editorAudioUrl: (sid, version) => `/api/editor/sessions/${sid}/audio?v=${version}&${tokenParam()}`,
-  editorPreviewUrl: (sid, nonce) => `/api/editor/sessions/${sid}/preview.wav?n=${nonce}&${tokenParam()}`,
 };

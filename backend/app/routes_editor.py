@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from .database import get_db
-from .schemas import EditorSessionCreate, EditorEffectRequest, EditorEditRequest, EditorSaveRequest
+from .schemas import EditorSessionCreate, EditorEditRequest, EditorSaveRequest
 from . import audio_editor, navidrome, settings_service
 from .audio_editor import EditorError
 from .config import AUDIO_BITRATES, AUDIO_CONVERT_FORMATS
@@ -28,10 +28,9 @@ def _guard(fn, *args, **kwargs):
         raise HTTPException(status_code=400, detail=str(exc))
 
 
-@router.get("/effects")
-def list_effects():
+@router.get("/options")
+def editor_options():
     return {
-        "effects": audio_editor.effect_catalogue(),
         "formats": {k: {"lossless": v.get("lossless", False)} for k, v in AUDIO_CONVERT_FORMATS.items()},
         "bitrates": AUDIO_BITRATES,
     }
@@ -78,13 +77,6 @@ def session_peaks(
     return _guard(audio_editor.peaks, _session(session_id), start, end, buckets)
 
 
-@router.post("/sessions/{session_id}/effect")
-def apply_effect(session_id: str, req: EditorEffectRequest):
-    sess = _session(session_id)
-    _guard(audio_editor.apply_effect, sess, req.effect, req.params, req.start, req.end)
-    return sess.info()
-
-
 @router.post("/sessions/{session_id}/edit")
 def apply_edit(session_id: str, req: EditorEditRequest):
     sess = _session(session_id)
@@ -104,22 +96,6 @@ def redo(session_id: str):
     sess = _session(session_id)
     audio_editor.redo(sess)
     return sess.info()
-
-
-@router.post("/sessions/{session_id}/preview")
-def preview(session_id: str, req: EditorEffectRequest):
-    sess = _session(session_id)
-    _guard(audio_editor.preview_effect, sess, req.effect, req.params, req.start, req.end)
-    return {"ok": True}
-
-
-@router.get("/sessions/{session_id}/preview.wav")
-def preview_audio(session_id: str):
-    sess = _session(session_id)
-    path = sess.dir / "preview.wav"
-    if not path.exists():
-        raise HTTPException(status_code=404, detail="No preview rendered")
-    return FileResponse(path, media_type="audio/wav", headers={"Cache-Control": "no-store"})
 
 
 @router.post("/sessions/{session_id}/save")
