@@ -35,6 +35,8 @@ Full stack: `cp .env.example .env && docker compose up --build` (UI on :8080, AP
 
 **Library is filesystem-backed, not DB-cached.** `library/scanner.py` walks the library dir with Mutagen on every request; track/album/artist IDs are base64-encoded relative paths. `library/metadata.py` does tag/art read-write (multi-value artist tags via comma-split; album artist single-valued), `library/organizer.py` computes `Artist/Album/NN - Title.ext` paths (grouped by album artist) and moves files. Any code that moves a library file must call `library/tracking.py:sync_moved_path` so spooler/convert history rows (which store `filepath`/`library_path`) keep pointing at it. Artwork has three levels: embedded track art, `cover.jpg` + embedded album art, and artist pictures in a separate folder (named by album artist).
 
+**Audio editor.** `audio_editor.py` / `routes_editor.py` (mounted with `require_admin`) implement the Editor page. A session decodes a library track to a 16-bit WAV under `CONVERT_DIR/editor/<sid>/` and keeps a version stack (each edit = one ffmpeg render, undo/redo = pointer move); the library file is only touched by `export` (overwrite or "(edited)" copy, tags/art copied from the original). Effects are declared once in `EFFECTS` (with param ranges) and the frontend renders its forms from `GET /api/editor/effects`. Sessions are in memory; working files are wiped at startup.
+
 **Tag suggestions.** `tag_suggestions.py` / `routes_suggestions.py` record previously used artist/album/genre/year values (`TagSuggestion` table) to autocomplete in the tag editor and spooler.
 
 **Navidrome scan.** `navidrome.py` is a Subsonic API client; scans can auto-trigger after library additions (spooler/convert "add to library").

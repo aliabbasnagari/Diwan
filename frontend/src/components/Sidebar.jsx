@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Library, DownloadCloud, Settings, RefreshCcw, LogOut, User, Tag } from "lucide-react";
+import { Library, DownloadCloud, Settings, RefreshCcw, LogOut, User, Tag, AudioWaveform } from "lucide-react";
 import { useAuth } from "../auth.jsx";
 
 import logo from "../assets/logo-dark.svg";
@@ -8,6 +8,7 @@ const links = [
   { to: "/", label: "Library", icon: Library, end: true },
   { to: "/spooler", label: "Spooler", icon: DownloadCloud },
   { to: "/convert", label: "Convert", icon: RefreshCcw },
+  { to: "/editor", label: "Editor", icon: AudioWaveform },
   { to: "/tags", label: "Tags", icon: Tag },
   { to: "/settings", label: "Settings", icon: Settings },
 ];

@@ -48,5 +48,31 @@ class TrackTagsUpdate(BaseModel):
     reorganize: bool = True   # move/rename the file to match Artist/Album/Title if tags changed
 
 
+class EditorSessionCreate(BaseModel):
+    track_id: str
+
+
+class EditorEffectRequest(BaseModel):
+    effect: str
+    params: dict = Field(default_factory=dict)
+    start: Optional[float] = None   # selection in seconds; none = whole track
+    end: Optional[float] = None
+
+
+class EditorEditRequest(BaseModel):
+    op: str   # trim | delete | cut | copy | paste | insert_silence
+    start: Optional[float] = None
+    end: Optional[float] = None
+    position: Optional[float] = None
+    seconds: Optional[float] = None
+
+
+class EditorSaveRequest(BaseModel):
+    mode: str = Field(default="new", pattern="^(replace|new)$")
+    format: Optional[str] = None
+    bitrate: Optional[str] = None
+    title: Optional[str] = None
+
+
 class OrganizeRequest(BaseModel):
     track_ids: Optional[list[str]] = None   # None = organize entire library

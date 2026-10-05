@@ -5,7 +5,7 @@ import os
 from .config import CORS_ORIGINS
 from .database import init_db, SessionLocal
 from .models import Download, DownloadStatus, ConversionJob, ConversionStatus
-from . import downloader, converter, settings_service
+from . import downloader, converter, settings_service, audio_editor
 from .auth import require_admin
 from .routes_auth import router as auth_router
 from .routes_downloads import router as downloads_router
@@ -14,6 +14,7 @@ from .routes_settings import router as settings_router
 from .routes_navidrome import router as navidrome_router
 from .routes_suggestions import router as suggestions_router
 from .routes_convert import router as convert_router
+from .routes_editor import router as editor_router
 
 app = FastAPI(title="Diwan — Music Library Manager API")
 
@@ -34,6 +35,7 @@ app.include_router(settings_router, dependencies=[Depends(require_admin)])
 app.include_router(navidrome_router, dependencies=[Depends(require_admin)])
 app.include_router(suggestions_router, dependencies=[Depends(require_admin)])
 app.include_router(convert_router, dependencies=[Depends(require_admin)])
+app.include_router(editor_router, dependencies=[Depends(require_admin)])
 
 ACTIVE_DOWNLOAD_STATUSES = [
     DownloadStatus.DOWNLOADING, DownloadStatus.QUEUED,
@@ -49,6 +51,7 @@ def on_startup():
     finally:
         db.close()
 
+    audio_editor.cleanup_all()  # drop editor working files left by a previous run
     downloader.start_workers()
     converter.start_workers()
 
