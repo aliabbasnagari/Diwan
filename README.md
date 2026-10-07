@@ -131,7 +131,6 @@ backend/
       organizer.py               sanitizes paths, moves files into place
   requirements.txt
   run.py
-  Dockerfile
 frontend/
   src/
     App.jsx                   auth gate + sidebar layout + routes
@@ -152,8 +151,7 @@ frontend/
       Sidebar.jsx                      nav + logged-in user + logout
   tailwind.config.js
   vite.config.js              dev server + /api proxy to the backend
-  Dockerfile
-  nginx.conf
+Dockerfile                 multi-stage: builds the frontend, serves it from the backend
 docker-compose.yml
 .env.example              NAVIDROME_URL goes in a .env file next to this
 ```
@@ -165,30 +163,21 @@ cp .env.example .env    # then edit .env and set NAVIDROME_URL
 docker compose up --build
 ```
 
-Then open http://localhost:8080 and sign in with a Navidrome **admin**
-account. The API is also reachable directly at http://localhost:8000.
-`docker compose up` refuses to start the backend if `NAVIDROME_URL` isn't
+One container builds and serves both the API and the frontend (the
+backend mounts the built frontend as static files — see `app/main.py`).
+Open http://localhost:4633 and sign in with a Navidrome **admin**
+account. `docker compose up` refuses to start if `NAVIDROME_URL` isn't
 set in `.env` — that's intentional, the whole app is gated on it.
 
-Two named volumes are created:
-
-- `diwan-data` — SQLite DB + the download staging area + conversion output
-- `diwan-music` — the library itself
-
-**Point `diwan-music` at wherever Navidrome reads its music from.** If
-Navidrome runs elsewhere on the same host, edit the `diwan-music` volume
-line in `docker-compose.yml` to a bind mount of that same folder, e.g.:
+The `diwan-data` volume holds the SQLite DB + the download staging area
++ conversion output. Point the `/music` bind mount at wherever Navidrome
+reads its music from — edit the volume line in `docker-compose.yml`, e.g.:
 
 ```yaml
     volumes:
-      - diwan-data:/data
+      - diwan-data:/diwan-data
       - /home/you/music:/music
 ```
-
-There's also a commented-out `navidrome` service in `docker-compose.yml`
-if you'd rather run Navidrome itself as part of the same stack, sharing
-the `diwan-music` volume — uncomment it, set `NAVIDROME_URL=http://navidrome:4533`
-in `.env`, and you're set.
 
 To run in the background: `docker compose up --build -d`, then
 `docker compose logs -f`.

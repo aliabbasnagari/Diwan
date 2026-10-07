@@ -1,6 +1,17 @@
+# --- frontend build stage ---
+FROM node:20-alpine AS frontend-build
+
+WORKDIR /frontend
+
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm install
+
+COPY frontend/ .
+RUN npm run build
+
+# --- backend runtime (serves the API and the built frontend) ---
 FROM python:3.12-slim
 
-# Install dependencies
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     ffmpeg \
@@ -20,13 +31,14 @@ ENV PATH="${DENO_INSTALL}/bin:${PATH}"
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app ./app
+COPY backend/app ./app
+COPY --from=frontend-build /frontend/dist ./app/static
 
 # uncomment if you want to use cookies for private content
-# COPY cookies.txt .
+# COPY backend/cookies.txt .
 
 ENV LIBRARY_DIR=/music
 ENV DOWNLOAD_DIR=/data/downloads

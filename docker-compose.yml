@@ -1,8 +1,8 @@
 services:
-  backend:
+  app:
     build:
-      context: ./backend
-    container_name: diwan-backend
+      context: .
+    container_name: diwan
     restart: unless-stopped
     environment:
       LIBRARY_DIR: /music
@@ -23,17 +23,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-
-  frontend:
-    build:
-      context: ./frontend
-    container_name: diwan-frontend
-    restart: unless-stopped
-    depends_on:
-      backend:
-        condition: service_healthy
-    ports:
-      - "4733:80"
 
 volumes:
   diwan-data:

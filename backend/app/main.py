@@ -1,5 +1,9 @@
-from fastapi import FastAPI, Depends
+from pathlib import Path
+
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 import os
 
 from .config import CORS_ORIGINS
@@ -88,3 +92,21 @@ def on_startup():
 @app.get("/api/health")
 def health():
     return {"ok": True}
+
+
+# Built frontend assets (copied in at `app/static` during the Docker build —
+# see Dockerfile). Absent in local dev, where the frontend runs separately
+# via `npm run dev` and proxies /api to this backend (see vite.config.js).
+FRONTEND_DIST = Path(__file__).resolve().parent / "static"
+
+if FRONTEND_DIST.is_dir():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="frontend-assets")
+
+    @app.get("/{full_path:path}")
+    def serve_frontend(full_path: str):
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404)
+        candidate = FRONTEND_DIST / full_path
+        if full_path and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(FRONTEND_DIST / "index.html")
