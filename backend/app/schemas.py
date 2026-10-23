@@ -94,7 +94,7 @@ class OrganizeRequest(BaseModel):
 
 
 class DuplicateResolveRequest(BaseModel):
-    keeper_path: str
+    keep_paths: list[str]
 
 
 class DuplicateTrashPathRequest(BaseModel):

@@ -84,8 +84,8 @@ export const api = {
   cancelDuplicateScan: () => unwrap(client.post("/duplicates/scan/cancel")),
   listDuplicateGroups: (category) =>
     unwrap(client.get("/duplicates/groups", { params: category ? { category } : {} })),
-  resolveDuplicateGroup: (id, keeperPath) =>
-    unwrap(client.post(`/duplicates/groups/${id}/resolve`, { keeper_path: keeperPath })),
+  resolveDuplicateGroup: (id, keepPaths) =>
+    unwrap(client.post(`/duplicates/groups/${id}/resolve`, { keep_paths: keepPaths })),
   ignoreDuplicateGroup: (id) => unwrap(client.post(`/duplicates/groups/${id}/ignore`)),
   listDuplicateTrash: () => unwrap(client.get("/duplicates/trash")),
   restoreDuplicateTrash: (path) => unwrap(client.post("/duplicates/trash/restore", { path })),

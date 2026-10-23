@@ -77,7 +77,7 @@ def resolve_group(group_id: int, req: DuplicateResolveRequest, db: Session = Dep
     if group.status != DuplicateGroupStatus.PENDING:
         raise HTTPException(status_code=400, detail="This group was already resolved or ignored")
     try:
-        result = dedup_scanner.resolve_group(db, group, req.keeper_path, _lib_dir(db))
+        result = dedup_scanner.resolve_group(db, group, req.keep_paths, _lib_dir(db))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except OSError as exc:

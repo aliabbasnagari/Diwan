@@ -1,6 +1,7 @@
 import difflib
 import re
 import shutil
+import sys
 import threading
 import time
 from datetime import datetime
@@ -139,13 +140,18 @@ def _run_job(job_id: int):
         _set_job(job_id, total=len(paths), processed=0, phase_detail=None)
 
         failures = 0
+        failure_samples: list[str] = []
         for i, path in enumerate(paths):
             if _cancel_flags.get(job_id):
                 _set_job(job_id, status=DuplicateScanStatus.CANCELLED, completed_at=datetime.utcnow())
                 return
-            if not _ensure_fingerprint(library_dir, path):
-                failures += 1
             rel = str(path.relative_to(library_dir))
+            ok, error = _ensure_fingerprint(library_dir, path)
+            if not ok:
+                failures += 1
+                print(f"[dedup_scanner] fingerprint failed for {rel}: {error}", file=sys.stderr, flush=True)
+                if len(failure_samples) < 5:
+                    failure_samples.append(f"{rel}: {error}")
             _set_job(
                 job_id,
                 processed=i + 1,
@@ -162,10 +168,12 @@ def _run_job(job_id: int):
         current_paths = {str(p.relative_to(library_dir)) for p in paths}
         groups_found = _build_groups(current_paths)
 
+        warning = ("Could not fingerprint:\n" + "\n".join(failure_samples)) if failure_samples else None
         _set_job(
             job_id,
             status=DuplicateScanStatus.COMPLETED,
             groups_found=groups_found,
+            error_message=warning,
             completed_at=datetime.utcnow(),
         )
     except Exception as exc:  # noqa: BLE001
@@ -174,31 +182,46 @@ def _run_job(job_id: int):
         _cancel_flags.pop(job_id, None)
 
 
-def _ensure_fingerprint(library_dir: Path, path: Path) -> bool:
-    """Returns False if the acoustic fingerprint could not be computed for
-    this file (e.g. fpcalc missing/unsupported format) — the file still
-    gets hashed, so exact-duplicate detection keeps working regardless."""
+def _ensure_fingerprint(library_dir: Path, path: Path) -> tuple[bool, str | None]:
+    """Returns (ok, error_message). ok=False means the acoustic fingerprint
+    could not be computed for this file (e.g. fpcalc missing/unsupported
+    format) — the file still gets hashed, so exact-duplicate detection
+    keeps working regardless."""
     rel = str(path.relative_to(library_dir))
     try:
         stat = path.stat()
     except OSError:
-        return True
+        return True, None   # file vanished mid-scan — not a fingerprinting failure
 
     db = SessionLocal()
     try:
         row = db.query(TrackFingerprint).filter(TrackFingerprint.path == rel).first()
         if row and row.mtime_ns == stat.st_mtime_ns and row.size == stat.st_size:
-            return bool(row.chromaprint_fp) or row.sha256 is not None
+            if row.chromaprint_fp or row.sha256 is not None:
+                return True, None
+            return False, "no cached fingerprint (a previous attempt failed — fix/re-encode the file to retry)"
 
         tags = tag_metadata.read_tags(path)
-        sha256 = fp.compute_sha256(path)
 
         ok = True
+        error = None
+        sha256 = None
+        duration, raw_fp = None, []
         try:
-            duration, raw_fp = fp.compute_chromaprint(path)
-        except fp.FingerprintError:
-            duration, raw_fp = None, []
+            sha256 = fp.compute_sha256(path)
+        except OSError as exc:
             ok = False
+            error = f"could not read file to hash it: {exc}"
+
+        if sha256 is not None:
+            try:
+                duration, raw_fp = fp.compute_chromaprint(path)
+            except fp.FingerprintError as exc:
+                ok = False
+                error = str(exc)
+            except Exception as exc:  # noqa: BLE001 — one bad file must not abort the whole scan
+                ok = False
+                error = f"unexpected error: {exc}"
 
         if row is None:
             row = TrackFingerprint(path=rel)
@@ -215,7 +238,7 @@ def _ensure_fingerprint(library_dir: Path, path: Path) -> bool:
         row.album = tags.get("album")
         row.scanned_at = datetime.utcnow()
         db.commit()
-        return ok
+        return ok, error
     finally:
         db.close()
 
@@ -441,15 +464,19 @@ def cleanup_empty_dirs(start_dir: Path, library_dir: Path):
         current = current.parent
 
 
-def resolve_group(db, group: DuplicateGroup, keeper_path: str, library_dir: Path) -> dict:
+def resolve_group(db, group: DuplicateGroup, keep_paths: list[str], library_dir: Path) -> dict:
     members = db.query(DuplicateGroupMember).filter(DuplicateGroupMember.group_id == group.id).all()
-    if not any(m.path == keeper_path for m in members):
-        raise ValueError("keeper_path is not a member of this group")
+    member_paths = {m.path for m in members}
+    keep_set = set(keep_paths) & member_paths
+    if not keep_set:
+        raise ValueError("keep_paths must include at least one member of this group")
+    if keep_set == member_paths:
+        raise ValueError("at least one file must be removed — use 'not a duplicate' to keep everything")
 
     trash_dir = library_dir / DUPLICATE_TRASH_DIRNAME
     quarantined = []
     for m in members:
-        if m.path == keeper_path:
+        if m.path in keep_set:
             continue
         src = (library_dir / m.path).resolve()
         if not src.exists():
@@ -472,7 +499,7 @@ def resolve_group(db, group: DuplicateGroup, keeper_path: str, library_dir: Path
     group.status = DuplicateGroupStatus.RESOLVED
     group.resolved_at = datetime.utcnow()
     db.commit()
-    return {"kept": keeper_path, "quarantined": quarantined}
+    return {"kept": sorted(keep_set), "quarantined": quarantined}
 
 
 def ignore_group(db, group: DuplicateGroup) -> None:
