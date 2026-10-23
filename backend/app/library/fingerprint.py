@@ -41,10 +41,20 @@ def compute_chromaprint(path: Path) -> tuple[float, list[int]]:
     try:
         data = json.loads(proc.stdout)
         duration = float(data["duration"])
-        fp = [int(x) for x in str(data["fingerprint"]).split(",") if x.strip() != ""]
+        raw = data["fingerprint"]
+        # `-raw -json` returns the fingerprint as a JSON array of (signed
+        # 32-bit) ints on every fpcalc version we've seen, but fall back to
+        # parsing a comma-separated string just in case some build differs.
+        if isinstance(raw, list):
+            fp = [int(x) for x in raw]
+        else:
+            fp = [int(x) for x in str(raw).split(",") if x.strip() != ""]
     except Exception as exc:  # noqa: BLE001
         raise FingerprintError(f"could not parse fpcalc output: {exc}")
     return duration, fp
+
+
+_MASK32 = 0xFFFFFFFF
 
 
 def fingerprint_similarity(fp_a: list[int], fp_b: list[int], max_offset: int = 20) -> float:
@@ -64,7 +74,10 @@ def fingerprint_similarity(fp_a: list[int], fp_b: list[int], max_offset: int = 2
         n = min(len(a), len(b))
         if n < 10:   # too short an overlap to mean anything
             continue
-        mismatched_bits = sum((a[i] ^ b[i]).bit_count() for i in range(n))
+        # fpcalc's raw ints are signed 32-bit; mask to unsigned before XOR
+        # so Python's arbitrary-precision two's-complement semantics don't
+        # throw off the bit count for negative values.
+        mismatched_bits = sum(((a[i] & _MASK32) ^ (b[i] & _MASK32)).bit_count() for i in range(n))
         similarity = 1.0 - (mismatched_bits / (n * 32))
         if similarity > best:
             best = similarity

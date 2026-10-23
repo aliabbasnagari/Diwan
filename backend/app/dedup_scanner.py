@@ -196,10 +196,11 @@ def _ensure_fingerprint(library_dir: Path, path: Path) -> tuple[bool, str | None
     db = SessionLocal()
     try:
         row = db.query(TrackFingerprint).filter(TrackFingerprint.path == rel).first()
-        if row and row.mtime_ns == stat.st_mtime_ns and row.size == stat.st_size:
-            if row.chromaprint_fp or row.sha256 is not None:
-                return True, None
-            return False, "no cached fingerprint (a previous attempt failed — fix/re-encode the file to retry)"
+        if row and row.mtime_ns == stat.st_mtime_ns and row.size == stat.st_size and row.chromaprint_fp:
+            return True, None
+        # No cached chromaprint fingerprint — either never attempted, or a
+        # previous attempt failed (possibly due to a bug since fixed, or a
+        # transient issue) — always retry rather than caching failures.
 
         tags = tag_metadata.read_tags(path)
 
