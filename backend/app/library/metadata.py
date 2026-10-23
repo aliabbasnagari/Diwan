@@ -55,6 +55,7 @@ def read_tags(path: Path) -> dict:
     tags = {f: None for f in EASY_FIELDS}
     duration = None
     bitrate = None
+    sample_rate = None
 
     try:
         audio = MutagenFile(str(path), easy=True)
@@ -69,6 +70,7 @@ def read_tags(path: Path) -> dict:
             if audio.info is not None:
                 duration = getattr(audio.info, "length", None)
                 bitrate = getattr(audio.info, "bitrate", None)
+                sample_rate = getattr(audio.info, "sample_rate", None)
     except Exception:
         pass
 
@@ -76,6 +78,7 @@ def read_tags(path: Path) -> dict:
         **tags,
         "duration": duration,
         "bitrate": bitrate,
+        "sample_rate": sample_rate,
         "has_art": read_art(path) is not None,
     }
 

@@ -91,3 +91,11 @@ class EditorSaveRequest(BaseModel):
 
 class OrganizeRequest(BaseModel):
     track_ids: Optional[list[str]] = None   # None = organize entire library
+
+
+class DuplicateResolveRequest(BaseModel):
+    keeper_path: str
+
+
+class DuplicateTrashPathRequest(BaseModel):
+    path: str

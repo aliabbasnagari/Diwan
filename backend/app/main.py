@@ -9,7 +9,7 @@ import os
 from .config import CORS_ORIGINS
 from .database import init_db, SessionLocal
 from .models import Download, DownloadStatus, ConversionJob, ConversionStatus
-from . import downloader, converter, settings_service, audio_editor, bulk_spooler
+from . import downloader, converter, settings_service, audio_editor, bulk_spooler, dedup_scanner
 from .auth import require_admin
 from .routes_auth import router as auth_router
 from .routes_downloads import router as downloads_router
@@ -20,6 +20,7 @@ from .routes_suggestions import router as suggestions_router
 from .routes_convert import router as convert_router
 from .routes_editor import router as editor_router
 from .routes_bulk_spooler import router as bulk_spooler_router
+from .routes_duplicates import router as duplicates_router
 
 app = FastAPI(title="Diwan — Music Library Manager API")
 
@@ -42,6 +43,7 @@ app.include_router(suggestions_router, dependencies=[Depends(require_admin)])
 app.include_router(convert_router, dependencies=[Depends(require_admin)])
 app.include_router(editor_router, dependencies=[Depends(require_admin)])
 app.include_router(bulk_spooler_router, dependencies=[Depends(require_admin)])
+app.include_router(duplicates_router, dependencies=[Depends(require_admin)])
 
 ACTIVE_DOWNLOAD_STATUSES = [
     DownloadStatus.DOWNLOADING, DownloadStatus.QUEUED,
@@ -61,6 +63,7 @@ def on_startup():
     downloader.start_workers()
     converter.start_workers()
     bulk_spooler.start_worker()
+    dedup_scanner.start_worker()
 
     # Resume anything left mid-flight from a previous run
     db = SessionLocal()

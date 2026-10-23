@@ -2,7 +2,7 @@ import base64
 import threading
 from pathlib import Path
 
-from ..config import AUDIO_EXTENSIONS, FOLDER_ART_BASENAMES, IMAGE_EXTENSIONS
+from ..config import AUDIO_EXTENSIONS, FOLDER_ART_BASENAMES, IMAGE_EXTENSIONS, DUPLICATE_TRASH_DIRNAME
 from . import metadata
 from .organizer import sanitize
 
@@ -58,6 +58,9 @@ def _scan_files(library_dir: Path):
         return
     for path in sorted(library_dir.rglob("*")):
         if path.is_file() and path.suffix.lower() in AUDIO_EXTENSIONS:
+            rel_parts = path.relative_to(library_dir).parts
+            if rel_parts and rel_parts[0] == DUPLICATE_TRASH_DIRNAME:
+                continue  # quarantined duplicates aren't part of the live library
             yield path
 
 

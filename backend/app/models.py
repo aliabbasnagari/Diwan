@@ -2,8 +2,9 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, Integer, String, Float, Text, DateTime, Enum as SAEnum, Boolean, UniqueConstraint
+    Column, Integer, String, Float, Text, DateTime, Enum as SAEnum, Boolean, UniqueConstraint, ForeignKey
 )
+from sqlalchemy.orm import relationship
 
 from .database import Base
 
@@ -317,3 +318,153 @@ class TagSuggestion(Base):
             "use_count": self.use_count,
             "last_used_at": self.last_used_at.isoformat() if self.last_used_at else None,
         }
+
+
+class DuplicateScanStatus(str, enum.Enum):
+    QUEUED = "queued"
+    HASHING = "hashing"
+    FINGERPRINTING = "fingerprinting"
+    SCORING = "scoring"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class DuplicateCategory(str, enum.Enum):
+    EXACT = "exact"
+    AUDIO_MATCH = "audio_match"
+    NEAR_MATCH = "near_match"
+    DIFFERENT_RECORDING = "different_recording"
+
+
+class DuplicateGroupStatus(str, enum.Enum):
+    PENDING = "pending"
+    RESOLVED = "resolved"
+    IGNORED = "ignored"
+
+
+class TrackFingerprint(Base):
+    """Persistent per-file cache of everything the dedup pipeline needs to
+    compute once and re-use: a byte-exact hash and an acoustic fingerprint.
+    Keyed by (path, mtime_ns, size) so an unchanged file is never re-hashed
+    or re-fingerprinted on a later scan — the expensive part of this feature."""
+
+    __tablename__ = "track_fingerprints"
+
+    id = Column(Integer, primary_key=True, index=True)
+    path = Column(String, nullable=False, unique=True, index=True)   # relative to library_dir
+    mtime_ns = Column(Integer, nullable=False)
+    size = Column(Integer, nullable=False)
+
+    sha256 = Column(String, nullable=True, index=True)
+    duration = Column(Float, nullable=True)
+    sample_rate = Column(Integer, nullable=True)
+    bitrate = Column(Integer, nullable=True)
+    chromaprint_fp = Column(Text, nullable=True)   # comma-separated raw uint32 ints from fpcalc -raw
+
+    title = Column(String, nullable=True)
+    artist = Column(String, nullable=True)
+    album = Column(String, nullable=True)
+
+    scanned_at = Column(DateTime, default=datetime.utcnow)
+
+
+class DuplicateScanJob(Base):
+    """One duplicate-detection scan run. Doubles as the queue and the
+    history log, same pattern as Download/ConversionJob."""
+
+    __tablename__ = "duplicate_scan_jobs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    status = Column(SAEnum(DuplicateScanStatus), default=DuplicateScanStatus.QUEUED, nullable=False, index=True)
+    phase_detail = Column(String, nullable=True)   # e.g. the file currently being fingerprinted
+    processed = Column(Integer, default=0)
+    total = Column(Integer, default=0)
+    groups_found = Column(Integer, default=0)
+    fingerprint_failures = Column(Integer, default=0)
+    error_message = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "status": self.status.value if self.status else None,
+            "phase_detail": self.phase_detail,
+            "processed": self.processed,
+            "total": self.total,
+            "groups_found": self.groups_found,
+            "fingerprint_failures": self.fingerprint_failures,
+            "error_message": self.error_message,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+        }
+
+
+class DuplicateGroup(Base):
+    __tablename__ = "duplicate_groups"
+
+    id = Column(Integer, primary_key=True, index=True)
+    category = Column(SAEnum(DuplicateCategory), nullable=False, index=True)
+    status = Column(SAEnum(DuplicateGroupStatus), default=DuplicateGroupStatus.PENDING, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    resolved_at = Column(DateTime, nullable=True)
+
+    members = relationship("DuplicateGroupMember", back_populates="group", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "category": self.category.value if self.category else None,
+            "status": self.status.value if self.status else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "resolved_at": self.resolved_at.isoformat() if self.resolved_at else None,
+        }
+
+
+class DuplicateGroupMember(Base):
+    __tablename__ = "duplicate_group_members"
+
+    id = Column(Integer, primary_key=True, index=True)
+    group_id = Column(Integer, ForeignKey("duplicate_groups.id"), nullable=False, index=True)
+
+    path = Column(String, nullable=False)   # relative to library_dir, snapshot at scan time
+    title = Column(String, nullable=True)
+    artist = Column(String, nullable=True)
+    album = Column(String, nullable=True)
+    duration = Column(Float, nullable=True)
+    bitrate = Column(Integer, nullable=True)
+    sample_rate = Column(Integer, nullable=True)
+    filesize = Column(Integer, nullable=True)
+    is_suggested_keeper = Column(Boolean, default=False)
+
+    group = relationship("DuplicateGroup", back_populates="members")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "group_id": self.group_id,
+            "path": self.path,
+            "title": self.title,
+            "artist": self.artist,
+            "album": self.album,
+            "duration": self.duration,
+            "bitrate": self.bitrate,
+            "sample_rate": self.sample_rate,
+            "filesize": self.filesize,
+            "is_suggested_keeper": self.is_suggested_keeper,
+        }
+
+
+class DuplicateIgnoredPair(Base):
+    """A human verdict that two specific files are NOT duplicates, so a
+    re-scan never regroups them together again."""
+
+    __tablename__ = "duplicate_ignored_pairs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pair_key = Column(String, nullable=False, unique=True, index=True)   # "pathA||pathB", sorted
+    created_at = Column(DateTime, default=datetime.utcnow)

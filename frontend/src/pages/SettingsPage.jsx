@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, RadioTower, RefreshCw, Upload, Trash2, Cookie } from "lucide-react";
+import { CheckCircle2, XCircle, RadioTower, RefreshCw, Upload, Trash2, Cookie, RotateCcw } from "lucide-react";
 import { api } from "../api.js";
+import { formatBytes } from "../utils.js";
 
 export default function SettingsPage() {
   const qc = useQueryClient();
@@ -79,6 +80,30 @@ export default function SettingsPage() {
   });
 
 
+
+  const trashQuery = useQuery({ queryKey: ["duplicate-trash"], queryFn: api.listDuplicateTrash });
+  const trash = trashQuery.data || [];
+  const trashTotalSize = trash.reduce((sum, t) => sum + (t.filesize || 0), 0);
+
+  const invalidateTrash = () => qc.invalidateQueries({ queryKey: ["duplicate-trash"] });
+
+  const restoreTrashMutation = useMutation({
+    mutationFn: (path) => api.restoreDuplicateTrash(path),
+    onSuccess: () => { toast.success("Restored to the library"); invalidateTrash(); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const deleteTrashItemMutation = useMutation({
+    mutationFn: (path) => api.deleteDuplicateTrashItem(path),
+    onSuccess: invalidateTrash,
+    onError: (e) => toast.error(e.message),
+  });
+
+  const emptyTrashMutation = useMutation({
+    mutationFn: api.emptyDuplicateTrash,
+    onSuccess: (res) => { toast.success(`Deleted ${res.deleted} file${res.deleted === 1 ? "" : "s"}`); invalidateTrash(); },
+    onError: (e) => toast.error(e.message),
+  });
 
   const scanStatusQuery = useQuery({
     queryKey: ["scan-status"],
@@ -157,6 +182,58 @@ export default function SettingsPage() {
               />
             </Field>
           </div>
+        </section>
+
+        <section className="panel p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="label-eyebrow">Duplicates trash</p>
+            {trash.length > 0 && (
+              <span className="text-xs font-mono text-parchment-500">
+                {trash.length} file{trash.length === 1 ? "" : "s"} · {formatBytes(trashTotalSize)}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-parchment-500 leading-relaxed">
+            Files removed from a duplicate group on the Duplicates page land here instead of being
+            deleted outright — restore one if it was a mistake, or empty the trash to free the space.
+          </p>
+
+          {trash.length === 0 ? (
+            <p className="text-xs font-mono text-parchment-700">Nothing in the trash.</p>
+          ) : (
+            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+              {trash.map((t) => (
+                <div key={t.path} className="flex items-center gap-2 text-xs font-mono px-2.5 py-1.5 rounded-lg bg-ink-950">
+                  <span className="flex-1 min-w-0 truncate" title={t.path}>{t.path}</span>
+                  <span className="text-parchment-700 shrink-0">{formatBytes(t.filesize)}</span>
+                  <button
+                    className="text-parchment-500 hover:text-brass-400 transition p-1 shrink-0"
+                    title="Restore to library"
+                    onClick={() => restoreTrashMutation.mutate(t.path)}
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    className="text-parchment-500 hover:text-rust-400 transition p-1 shrink-0"
+                    title="Delete permanently"
+                    onClick={() => deleteTrashItemMutation.mutate(t.path)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {trash.length > 0 && (
+            <button
+              className="btn-ghost-danger flex items-center gap-1.5"
+              onClick={() => emptyTrashMutation.mutate()}
+              disabled={emptyTrashMutation.isPending}
+            >
+              <Trash2 className="w-3.5 h-3.5" /> {emptyTrashMutation.isPending ? "Emptying…" : "Empty trash"}
+            </button>
+          )}
         </section>
 
         <section className="panel p-5 space-y-4">

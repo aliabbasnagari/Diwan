@@ -4,6 +4,7 @@ import Sidebar from "./components/Sidebar.jsx";
 import LibraryPage from "./pages/LibraryPage.jsx";
 import SpoolerPage from "./pages/SpoolerPage.jsx";
 import BulkSpoolerPage from "./pages/BulkSpoolerPage.jsx";
+import DuplicatesPage from "./pages/DuplicatesPage.jsx";
 import ConvertPage from "./pages/ConvertPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="/" element={<LibraryPage />} />
             <Route path="/spooler" element={<SpoolerPage />} />
             <Route path="/bulk-spooler" element={<BulkSpoolerPage />} />
+            <Route path="/duplicates" element={<DuplicatesPage />} />
             <Route path="/convert" element={<ConvertPage />} />
             <Route path="/editor" element={<EditorPage />} />
             <Route path="/tags" element={<TagSuggestionsPage />} />

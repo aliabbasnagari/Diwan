@@ -40,6 +40,10 @@ DEFAULT_CONVERT_DIR.mkdir(parents=True, exist_ok=True)
 # Audio extensions the library scanner / tag editor will consider
 AUDIO_EXTENSIONS = {".mp3", ".flac", ".m4a", ".mp4", ".ogg", ".opus", ".wav", ".wma", ".aac"}
 
+# Folder (at the library root) that quarantined duplicate files are moved
+# into instead of being deleted outright — excluded from library scans.
+DUPLICATE_TRASH_DIRNAME = ".duplicates-trash"
+
 # ffmpeg target formats offered by the Convert page
 AUDIO_CONVERT_FORMATS = {
     "mp3": {"acodec": "libmp3lame", "ext": "mp3", "lossless": False, "default_bitrate": "192k"},

@@ -78,6 +78,20 @@ export const api = {
   retryBulkItem: (id) => unwrap(client.post(`/bulk-spooler/items/${id}/retry`)),
   deleteBulkItem: (id) => unwrap(client.delete(`/bulk-spooler/items/${id}`)),
 
+  // --- duplicates ---
+  startDuplicateScan: () => unwrap(client.post("/duplicates/scan")),
+  duplicateScanStatus: () => unwrap(client.get("/duplicates/scan/status")),
+  cancelDuplicateScan: () => unwrap(client.post("/duplicates/scan/cancel")),
+  listDuplicateGroups: (category) =>
+    unwrap(client.get("/duplicates/groups", { params: category ? { category } : {} })),
+  resolveDuplicateGroup: (id, keeperPath) =>
+    unwrap(client.post(`/duplicates/groups/${id}/resolve`, { keeper_path: keeperPath })),
+  ignoreDuplicateGroup: (id) => unwrap(client.post(`/duplicates/groups/${id}/ignore`)),
+  listDuplicateTrash: () => unwrap(client.get("/duplicates/trash")),
+  restoreDuplicateTrash: (path) => unwrap(client.post("/duplicates/trash/restore", { path })),
+  deleteDuplicateTrashItem: (path) => unwrap(client.delete("/duplicates/trash", { params: { path } })),
+  emptyDuplicateTrash: () => unwrap(client.post("/duplicates/trash/empty")),
+
   // --- library: tracks ---
   libraryTree: () => unwrap(client.get("/library/tree")),
   libraryTracks: (q) => unwrap(client.get("/library/tracks", { params: q ? { q } : {} })),
@@ -87,6 +101,9 @@ export const api = {
   deleteTrack: (id) => unwrap(client.delete(`/library/tracks/${id}`)),
   organizeTrack: (id) => unwrap(client.post(`/library/tracks/${id}/organize`)),
   organizeLibrary: (trackIds) => unwrap(client.post("/library/organize", { track_ids: trackIds || null })),
+
+  // --- library: track audio (inline playback) ---
+  trackAudioUrl: (id) => `/api/library/tracks/${id}/audio?${tokenParam()}`,
 
   // --- library: track-level art (embedded in that one file only) ---
   trackArtworkUrl: (id) => `/api/library/tracks/${id}/artwork?_=${Date.now()}&${tokenParam()}`,

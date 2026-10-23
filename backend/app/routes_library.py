@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
-from fastapi.responses import Response
+from fastapi.responses import Response, FileResponse
 from sqlalchemy.orm import Session
 
 from .database import get_db
@@ -11,6 +11,12 @@ from . import settings_service
 from .library import scanner, metadata, organizer, tracking
 
 router = APIRouter(prefix="/api/library", tags=["library"])
+
+AUDIO_MEDIA_TYPES = {
+    "mp3": "audio/mpeg", "flac": "audio/flac", "m4a": "audio/mp4", "mp4": "audio/mp4",
+    "ogg": "audio/ogg", "opus": "audio/opus", "wav": "audio/wav", "wma": "audio/x-ms-wma",
+    "aac": "audio/aac",
+}
 
 
 def _lib_dir(db: Session) -> Path:
@@ -84,6 +90,13 @@ def library_stats(db: Session = Depends(get_db)):
 def get_track(track_id: str, db: Session = Depends(get_db)):
     path = _resolve(db, track_id)
     return scanner.track_summary(_lib_dir(db), path)
+
+
+@router.get("/tracks/{track_id}/audio")
+def stream_track_audio(track_id: str, db: Session = Depends(get_db)):
+    path = _resolve(db, track_id)
+    media_type = AUDIO_MEDIA_TYPES.get(path.suffix.lstrip(".").lower(), "application/octet-stream")
+    return FileResponse(path, media_type=media_type)
 
 
 @router.put("/tracks/{track_id}")
