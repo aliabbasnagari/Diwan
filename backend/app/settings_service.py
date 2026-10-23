@@ -37,6 +37,12 @@ def get_settings(db: Session) -> AppSettings:
     if not row.session_secret:
         row.session_secret = secrets.token_hex(32)
         dirty = True
+    if not row.bulk_delay_min_seconds:
+        row.bulk_delay_min_seconds = 180
+        dirty = True
+    if not row.bulk_delay_max_seconds:
+        row.bulk_delay_max_seconds = 360
+        dirty = True
     if NAVIDROME_URL and row.navidrome_url != NAVIDROME_URL:
         # NAVIDROME_URL is env-controlled and always wins over whatever's stored
         row.navidrome_url = NAVIDROME_URL

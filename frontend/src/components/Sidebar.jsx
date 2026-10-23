@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Library, DownloadCloud, Settings, RefreshCcw, LogOut, User, Tag, Scissors } from "lucide-react";
+import { Library, DownloadCloud, Settings, RefreshCcw, LogOut, User, Tag, Scissors, ListOrdered } from "lucide-react";
 import { useAuth } from "../auth.jsx";
 
 import logo from "../assets/logo-dark.svg";
@@ -7,6 +7,7 @@ import logo from "../assets/logo-dark.svg";
 const links = [
   { to: "/", label: "Library", icon: Library, end: true },
   { to: "/spooler", label: "Spooler", icon: DownloadCloud },
+  { to: "/bulk-spooler", label: "Bulk Spooler", icon: ListOrdered },
   { to: "/convert", label: "Convert", icon: RefreshCcw },
   { to: "/editor", label: "Trimmer", icon: Scissors },
   { to: "/tags", label: "Tags", icon: Tag },

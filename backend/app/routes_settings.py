@@ -21,6 +21,13 @@ def get_settings(db: Session = Depends(get_db)):
 @router.put("")
 def update_settings(req: SettingsUpdateRequest, db: Session = Depends(get_db)):
     patch = req.model_dump(exclude_unset=True)
+
+    current = settings_service.get_settings(db)
+    new_min = patch.get("bulk_delay_min_seconds", current.bulk_delay_min_seconds)
+    new_max = patch.get("bulk_delay_max_seconds", current.bulk_delay_max_seconds)
+    if new_min is not None and new_max is not None and new_min > new_max:
+        raise HTTPException(status_code=400, detail="Minimum delay cannot be greater than maximum delay")
+
     row = settings_service.update_settings(db, patch)
     return row.to_dict()
 

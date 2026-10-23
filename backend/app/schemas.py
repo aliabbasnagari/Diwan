@@ -23,11 +23,33 @@ class DownloadCreateRequest(BaseModel):
     tag_year: Optional[int] = None
 
 
+class BulkBatchCreateRequest(BaseModel):
+    urls: list[str]
+    media_type: str = Field(default="audio", pattern="^(video|audio)$")
+    quality: str = "best"
+    audio_format: Optional[str] = "mp3"
+    subtitles: bool = False
+
+    # library integration (audio only) — shared across every URL in the batch
+    add_to_library: bool = True
+    tag_artist: Optional[str] = None
+    tag_album: Optional[str] = None
+    tag_album_artist: Optional[str] = None
+    tag_genre: Optional[str] = None
+    tag_year: Optional[int] = None
+
+
+class BulkReorderRequest(BaseModel):
+    order: list[int]   # bulk item ids, in the desired order (pending items only)
+
+
 class SettingsUpdateRequest(BaseModel):
     download_dir: Optional[str] = None
     library_dir: Optional[str] = None
     artist_image_dir: Optional[str] = None
     max_concurrent_downloads: Optional[int] = None
+    bulk_delay_min_seconds: Optional[int] = Field(default=None, ge=1)
+    bulk_delay_max_seconds: Optional[int] = Field(default=None, ge=1)
     cookies_enabled: Optional[bool] = None
     navidrome_url: Optional[str] = None
     navidrome_username: Optional[str] = None

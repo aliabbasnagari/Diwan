@@ -68,6 +68,16 @@ export const api = {
   fileUrl: (id) => `/api/downloads/${id}/file?${tokenParam()}`,
   downloadStats: () => unwrap(client.get("/stats")),
 
+  // --- bulk spooler ---
+  listBulkItems: () => unwrap(client.get("/bulk-spooler/items")),
+  createBulkItems: (payload) => unwrap(client.post("/bulk-spooler/items", payload)),
+  bulkSpoolerStatus: () => unwrap(client.get("/bulk-spooler/status")),
+  bulkSpoolerStats: () => unwrap(client.get("/bulk-spooler/stats")),
+  reorderBulkItems: (order) => unwrap(client.patch("/bulk-spooler/reorder", { order })),
+  cancelBulkItem: (id) => unwrap(client.post(`/bulk-spooler/items/${id}/cancel`)),
+  retryBulkItem: (id) => unwrap(client.post(`/bulk-spooler/items/${id}/retry`)),
+  deleteBulkItem: (id) => unwrap(client.delete(`/bulk-spooler/items/${id}`)),
+
   // --- library: tracks ---
   libraryTree: () => unwrap(client.get("/library/tree")),
   libraryTracks: (q) => unwrap(client.get("/library/tracks", { params: q ? { q } : {} })),

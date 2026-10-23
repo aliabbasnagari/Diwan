@@ -127,6 +127,39 @@ export default function SettingsPage() {
         </section>
 
         <section className="panel p-5 space-y-4">
+          <p className="label-eyebrow">Bulk Spooler</p>
+          <p className="text-xs text-parchment-500 leading-relaxed">
+            Batch downloads run one at a time, waiting a random amount of time in this range between each.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Minimum delay (minutes)">
+              <input
+                type="number"
+                min={0.5}
+                step={0.5}
+                className="input w-full"
+                value={(form.bulk_delay_min_seconds ?? 180) / 60}
+                onChange={(e) =>
+                  setForm({ ...form, bulk_delay_min_seconds: Math.round(Number(e.target.value) * 60) })
+                }
+              />
+            </Field>
+            <Field label="Maximum delay (minutes)">
+              <input
+                type="number"
+                min={0.5}
+                step={0.5}
+                className="input w-full"
+                value={(form.bulk_delay_max_seconds ?? 360) / 60}
+                onChange={(e) =>
+                  setForm({ ...form, bulk_delay_max_seconds: Math.round(Number(e.target.value) * 60) })
+                }
+              />
+            </Field>
+          </div>
+        </section>
+
+        <section className="panel p-5 space-y-4">
           <p className="label-eyebrow">Cookies</p>
           <p className="text-xs text-parchment-500 leading-relaxed">
             Some sites (YouTube, etc.) require cookies for age-restricted or members-only content.

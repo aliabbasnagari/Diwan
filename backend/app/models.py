@@ -112,6 +112,73 @@ class Download(Base):
         }
 
 
+class BulkItemStatus(str, enum.Enum):
+    PENDING = "pending"
+    DOWNLOADING = "downloading"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    SKIPPED_DUPLICATE = "skipped_duplicate"
+    CANCELLED = "cancelled"
+
+
+class BulkSpoolerItem(Base):
+    """One URL queued in the Bulk Spooler. Items are processed one at a time
+    (with a random delay between each) by bulk_spooler.py, which creates a
+    regular Download row per item and defers to the existing downloader.py
+    worker pool / tagging / library-placement pipeline for the actual work."""
+
+    __tablename__ = "bulk_spooler_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    position = Column(Integer, nullable=False, default=0, index=True)
+
+    url = Column(String, nullable=False)
+    media_type = Column(SAEnum(MediaType), default=MediaType.AUDIO, nullable=False)
+    quality = Column(String, default="best")
+    audio_format = Column(String, nullable=True)
+    subtitles = Column(Boolean, default=False)
+
+    add_to_library = Column(Boolean, default=False)
+    tag_artist = Column(String, nullable=True)
+    tag_album = Column(String, nullable=True)
+    tag_title = Column(String, nullable=True)
+    tag_album_artist = Column(String, nullable=True)
+    tag_genre = Column(String, nullable=True)
+    tag_year = Column(String, nullable=True)
+
+    status = Column(SAEnum(BulkItemStatus), default=BulkItemStatus.PENDING, nullable=False, index=True)
+    download_id = Column(Integer, nullable=True)   # linked Download row once processing starts
+    error_message = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "position": self.position,
+            "url": self.url,
+            "media_type": self.media_type.value if self.media_type else None,
+            "quality": self.quality,
+            "audio_format": self.audio_format,
+            "subtitles": self.subtitles,
+            "add_to_library": self.add_to_library,
+            "tag_artist": self.tag_artist,
+            "tag_album": self.tag_album,
+            "tag_title": self.tag_title,
+            "tag_album_artist": self.tag_album_artist,
+            "tag_genre": self.tag_genre,
+            "tag_year": self.tag_year,
+            "status": self.status.value if self.status else None,
+            "download_id": self.download_id,
+            "error_message": self.error_message,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+        }
+
+
 class ConversionStatus(str, enum.Enum):
     QUEUED = "queued"
     CONVERTING = "converting"
@@ -191,6 +258,9 @@ class AppSettings(Base):
     artist_image_dir = Column(String, nullable=True)
     max_concurrent_downloads = Column(Integer, default=2)
 
+    bulk_delay_min_seconds = Column(Integer, default=180)   # Bulk Spooler: random pause between downloads
+    bulk_delay_max_seconds = Column(Integer, default=360)
+
     cookies_file_path = Column(String, nullable=True)     # absolute path to the uploaded cookies.txt
     cookies_enabled = Column(Boolean, default=False)       # toggle: use cookies.txt in yt-dlp or not
 
@@ -209,6 +279,8 @@ class AppSettings(Base):
             "library_dir": self.library_dir,
             "artist_image_dir": self.artist_image_dir,
             "max_concurrent_downloads": self.max_concurrent_downloads,
+            "bulk_delay_min_seconds": self.bulk_delay_min_seconds,
+            "bulk_delay_max_seconds": self.bulk_delay_max_seconds,
             "cookies_file_path": self.cookies_file_path,
             "cookies_enabled": bool(self.cookies_enabled),
             "navidrome_url": self.navidrome_url,
