@@ -5,8 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import Response, FileResponse
 from sqlalchemy.orm import Session
 
+from .config import AUDIO_EXTENSIONS
 from .database import get_db
-from .schemas import TrackTagsUpdate, OrganizeRequest
+from .schemas import TrackTagsUpdate, OrganizeRequest, RenameRequest
 from . import settings_service
 from .library import scanner, metadata, organizer, tracking
 
@@ -236,6 +237,101 @@ async def set_artist_picture(artist_id: str, file: UploadFile = File(...), db: S
         raise HTTPException(status_code=400, detail=f"Could not save artist picture: {exc}")
 
     return {"artist": name, "picture_saved": True, "artist_image_dir": str(artist_dir)}
+
+
+@router.post("/artists/{artist_id}/rename")
+def rename_artist(artist_id: str, req: RenameRequest, db: Session = Depends(get_db)):
+    """Rename an artist across every track grouped under it (same
+    albumartist-or-artist grouping scanner.scan_tree uses), moving each
+    file to match and carrying over the artist picture, if any."""
+    lib = _lib_dir(db)
+    old_name = _resolve_artist_name(artist_id)
+    new_name = req.new_name.strip()
+    if not new_name:
+        raise HTTPException(status_code=400, detail="New name cannot be empty")
+
+    renamed, errors = 0, []
+    if new_name != old_name:
+        for path in scanner._scan_files(lib):
+            try:
+                tags = metadata.read_tags(path)
+                grouping_artist = tags.get("albumartist") or tags.get("artist")
+                if grouping_artist != old_name:
+                    continue
+                field = "albumartist" if tags.get("albumartist") else "artist"
+                metadata.write_tags(path, {field: new_name})
+                new_tags = metadata.read_tags(path)
+                new_path = organizer.reorganize_track(
+                    path, lib,
+                    artist=organizer.folder_artist(new_tags),
+                    album=new_tags.get("album") or "Singles",
+                    title=new_tags.get("title") or path.stem,
+                    track_number=new_tags.get("tracknumber"),
+                )
+                tracking.sync_moved_path(db, path, new_path, lib)
+                renamed += 1
+            except Exception as exc:  # noqa: BLE001
+                errors.append({"path": str(path), "error": str(exc)})
+
+        artist_dir = _artist_dir(db)
+        old_picture = scanner.artist_picture_path(artist_dir, old_name)
+        if old_picture:
+            new_picture = artist_dir / (organizer.sanitize(new_name, "Unknown Artist") + old_picture.suffix)
+            try:
+                if new_picture.resolve() != old_picture.resolve():
+                    old_picture.rename(new_picture)
+            except OSError as exc:
+                errors.append({"path": str(old_picture), "error": str(exc)})
+
+    return {"renamed": renamed, "errors": errors}
+
+
+@router.post("/albums/{album_id}/rename")
+def rename_album(album_id: str, req: RenameRequest, db: Session = Depends(get_db)):
+    """Rename an album across every track in its folder, moving each file
+    to match and carrying over any folder art (cover.jpg etc.)."""
+    lib = _lib_dir(db)
+    album_dir = _resolve_album(db, album_id)
+    new_name = req.new_name.strip()
+    if not new_name:
+        raise HTTPException(status_code=400, detail="New name cannot be empty")
+
+    track_paths = [
+        p for p in sorted(album_dir.iterdir())
+        if p.is_file() and p.suffix.lower() in AUDIO_EXTENSIONS
+    ]
+
+    renamed, errors, new_dir = 0, [], None
+    for path in track_paths:
+        try:
+            metadata.write_tags(path, {"album": new_name})
+            tags = metadata.read_tags(path)
+            new_path = organizer.reorganize_track(
+                path, lib,
+                artist=organizer.folder_artist(tags),
+                album=new_name,
+                title=tags.get("title") or path.stem,
+                track_number=tags.get("tracknumber"),
+            )
+            tracking.sync_moved_path(db, path, new_path, lib)
+            if new_dir is None:
+                new_dir = new_path.parent
+            renamed += 1
+        except Exception as exc:  # noqa: BLE001
+            errors.append({"path": str(path), "error": str(exc)})
+
+    if new_dir is not None and new_dir.resolve() != album_dir.resolve():
+        folder_image = scanner.find_folder_image(album_dir)
+        if folder_image and folder_image.exists():
+            try:
+                new_dir.mkdir(parents=True, exist_ok=True)
+                target = new_dir / folder_image.name
+                if not target.exists():
+                    folder_image.rename(target)
+            except OSError as exc:
+                errors.append({"path": str(folder_image), "error": str(exc)})
+
+    return {"renamed": renamed, "errors": errors}
 
 
 @router.post("/tracks/{track_id}/organize")

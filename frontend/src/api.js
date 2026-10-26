@@ -101,6 +101,10 @@ export const api = {
   deleteTrack: (id) => unwrap(client.delete(`/library/tracks/${id}`)),
   organizeTrack: (id) => unwrap(client.post(`/library/tracks/${id}/organize`)),
   organizeLibrary: (trackIds) => unwrap(client.post("/library/organize", { track_ids: trackIds || null })),
+  renameArtist: (artistId, newName) =>
+    unwrap(client.post(`/library/artists/${artistId}/rename`, { new_name: newName })),
+  renameAlbum: (albumId, newName) =>
+    unwrap(client.post(`/library/albums/${albumId}/rename`, { new_name: newName })),
 
   // --- library: track audio (inline playback) ---
   trackAudioUrl: (id) => `/api/library/tracks/${id}/audio?${tokenParam()}`,

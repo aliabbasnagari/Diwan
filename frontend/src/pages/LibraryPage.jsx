@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, RefreshCw, FolderTree, ChevronDown, ChevronRight, Music2, ImagePlus, User } from "lucide-react";
+import { Search, RefreshCw, FolderTree, ChevronDown, ChevronRight, Music2, ImagePlus, User, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../api.js";
 import { formatDuration, formatBytes } from "../utils.js";
@@ -48,6 +48,31 @@ export default function LibraryPage() {
       next.has(name) ? next.delete(name) : next.add(name);
       return next;
     });
+  }
+
+  function renameArtist(artist, newName) {
+    return api.renameArtist(artist.id, newName).then((res) => {
+      toast.success(
+        `Renamed — ${res.renamed} track${res.renamed === 1 ? "" : "s"} moved${res.errors.length ? `, ${res.errors.length} errors` : ""}`
+      );
+      setOpenArtists((s) => {
+        if (!s.has(artist.name)) return s;
+        const next = new Set(s);
+        next.delete(artist.name);
+        next.add(newName);
+        return next;
+      });
+      refresh();
+    }).catch((e) => toast.error(e.message));
+  }
+
+  function renameAlbum(album, newName) {
+    return api.renameAlbum(album.id, newName).then((res) => {
+      toast.success(
+        `Renamed — ${res.renamed} track${res.renamed === 1 ? "" : "s"} moved${res.errors.length ? `, ${res.errors.length} errors` : ""}`
+      );
+      refresh();
+    }).catch((e) => toast.error(e.message));
   }
 
   const stats = statsQuery.data;
@@ -106,6 +131,8 @@ export default function LibraryPage() {
           onToggleArtist={toggleArtist}
           onOpenTrack={setActiveTrack}
           onChanged={refresh}
+          onRenameArtist={renameArtist}
+          onRenameAlbum={renameAlbum}
         />
       )}
 
@@ -135,7 +162,7 @@ function SearchResults({ data, loading, onOpen }) {
   );
 }
 
-function ArtistTree({ tree, loading, openArtists, onToggleArtist, onOpenTrack, onChanged }) {
+function ArtistTree({ tree, loading, openArtists, onToggleArtist, onOpenTrack, onChanged, onRenameArtist, onRenameAlbum }) {
   if (loading) return <EmptyState text="Reading your library…" />;
   if (!tree || tree.artist_count === 0) {
     return (
@@ -156,6 +183,11 @@ function ArtistTree({ tree, loading, openArtists, onToggleArtist, onOpenTrack, o
                 <span className="font-display font-semibold text-sm truncate">{artist.name}</span>
               </button>
               <div className="flex items-center gap-3 shrink-0">
+                <RenameButton
+                  title="Rename artist"
+                  currentName={artist.name}
+                  onRename={(newName) => onRenameArtist(artist, newName)}
+                />
                 <ArtUploadButton
                   title="Upload artist picture"
                   onUpload={(file) =>
@@ -188,6 +220,11 @@ function ArtistTree({ tree, loading, openArtists, onToggleArtist, onOpenTrack, o
                         <p className="font-medium text-sm">{album.name}</p>
                         <p className="text-xs font-mono text-parchment-700">{album.track_count} track{album.track_count === 1 ? "" : "s"}</p>
                       </div>
+                      <RenameButton
+                        title="Rename album"
+                        currentName={album.name}
+                        onRename={(newName) => onRenameAlbum(album, newName)}
+                      />
                       <ArtUploadButton
                         title="Upload album art (writes cover.jpg + embeds into every track)"
                         onUpload={(file) =>
@@ -228,6 +265,25 @@ function ArtistAvatar({ artist }) {
     <div className="w-6 h-6 rounded-full bg-ink-700 flex items-center justify-center shrink-0">
       <User className="w-3.5 h-3.5 text-parchment-700" strokeWidth={1.75} />
     </div>
+  );
+}
+
+function RenameButton({ title, currentName, onRename }) {
+  return (
+    <button
+      className="text-parchment-700 hover:text-brass-400 transition p-1"
+      title={title}
+      onClick={(e) => {
+        e.stopPropagation();
+        const next = window.prompt(title, currentName);
+        if (next === null) return;
+        const trimmed = next.trim();
+        if (!trimmed || trimmed === currentName) return;
+        onRename(trimmed);
+      }}
+    >
+      <Pencil className="w-4 h-4" strokeWidth={1.75} />
+    </button>
   );
 }
 

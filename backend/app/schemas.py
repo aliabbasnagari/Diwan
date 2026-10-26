@@ -93,6 +93,10 @@ class OrganizeRequest(BaseModel):
     track_ids: Optional[list[str]] = None   # None = organize entire library
 
 
+class RenameRequest(BaseModel):
+    new_name: str
+
+
 class DuplicateResolveRequest(BaseModel):
     keep_paths: list[str]
 
