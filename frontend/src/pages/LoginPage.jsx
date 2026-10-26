@@ -14,7 +14,10 @@ export default function LoginPage() {
   const [config, setConfig] = useState(null);
 
   useEffect(() => {
-    api.authConfig().then(setConfig).catch(() => setConfig({ configured: false }));
+    api
+      .authConfig()
+      .then(setConfig)
+      .catch(() => setConfig({ configured: false }));
   }, []);
 
   async function handleSubmit(e) {
@@ -36,11 +39,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center justify-center mb-8">
-          <img
-            src={logo}
-            alt="Diwan Logo"
-            className="h-12 w-auto"
-          />
+          <img src={logo} alt="Diwan Logo" className="h-12 w-auto" />
           <span className="mt-2 font-display font-bold text-3xl tracking-tight text-center">
             Diwan
           </span>
@@ -52,9 +51,11 @@ export default function LoginPage() {
             <div className="text-sm text-parchment-300">
               <p className="font-medium mb-1">Server not configured</p>
               <p className="text-parchment-500 text-xs leading-relaxed">
-                <code className="font-mono text-brass-400">NAVIDROME_URL</code> isn't set on the
-                backend. Add it to the environment (e.g. in <code className="font-mono">docker-compose.yml</code>{" "}
-                or a <code className="font-mono">.env</code> file) and restart the server.
+                <code className="font-mono text-brass-400">NAVIDROME_URL</code>{" "}
+                isn't set on the backend. Add it to the environment (e.g. in{" "}
+                <code className="font-mono">docker-compose.yml</code> or a{" "}
+                <code className="font-mono">.env</code> file) and restart the
+                server.
               </p>
             </div>
           </div>
@@ -63,7 +64,9 @@ export default function LoginPage() {
             <p className="text-xs text-parchment-500 text-center -mt-1 mb-1">
               Sign in with a Navidrome admin account
               {config?.navidrome_url ? (
-                <span className="block font-mono text-parchment-700 mt-1 truncate">{config.navidrome_url}</span>
+                <span className="block font-mono text-parchment-700 mt-1 truncate">
+                  {config.navidrome_url}
+                </span>
               ) : null}
             </p>
 
@@ -89,9 +92,15 @@ export default function LoginPage() {
               />
             </label>
 
-            {error && <div className="text-xs text-rust-400 font-mono">{error}</div>}
+            {error && (
+              <div className="text-xs text-rust-400 font-mono">{error}</div>
+            )}
 
-            <button type="submit" className="btn-primary w-full" disabled={submitting || !username || !password}>
+            <button
+              type="submit"
+              className="btn-primary w-full"
+              disabled={submitting || !username || !password}
+            >
               {submitting ? "Signing in…" : "Sign in"}
             </button>
 

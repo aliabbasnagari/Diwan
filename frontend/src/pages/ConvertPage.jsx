@@ -6,7 +6,16 @@ import { api } from "../api.js";
 import ConversionCard from "../components/ConversionCard.jsx";
 import Labeled from "../components/Labeled.jsx";
 
-const AUDIO_EXT = new Set(["mp3", "flac", "m4a", "ogg", "opus", "wav", "wma", "aac"]);
+const AUDIO_EXT = new Set([
+  "mp3",
+  "flac",
+  "m4a",
+  "ogg",
+  "opus",
+  "wav",
+  "wma",
+  "aac",
+]);
 const ACTIVE = new Set(["queued", "converting"]);
 
 export default function ConvertPage() {
@@ -20,14 +29,35 @@ export default function ConvertPage() {
   const [targetResolution, setTargetResolution] = useState("source");
   const [saveToLibrary, setSaveToLibrary] = useState(false);
 
-  const formatsQuery = useQuery({ queryKey: ["convert-formats"], queryFn: api.convertFormats });
-  const libraryQuery = useQuery({ queryKey: ["library-tracks-flat"], queryFn: () => api.libraryTracks(), enabled: sourceKind === "library" });
-  const downloadsQuery = useQuery({ queryKey: ["downloads"], queryFn: api.listDownloads, enabled: sourceKind === "download" });
+  const formatsQuery = useQuery({
+    queryKey: ["convert-formats"],
+    queryFn: api.convertFormats,
+  });
+  const libraryQuery = useQuery({
+    queryKey: ["library-tracks-flat"],
+    queryFn: () => api.libraryTracks(),
+    enabled: sourceKind === "library",
+  });
+  const downloadsQuery = useQuery({
+    queryKey: ["downloads"],
+    queryFn: api.listDownloads,
+    enabled: sourceKind === "download",
+  });
 
-  const jobsQuery = useQuery({ queryKey: ["conversions"], queryFn: api.listConversions, refetchInterval: 1500 });
-  const statsQuery = useQuery({ queryKey: ["conversion-stats"], queryFn: api.conversionStats, refetchInterval: 1500 });
+  const jobsQuery = useQuery({
+    queryKey: ["conversions"],
+    queryFn: api.listConversions,
+    refetchInterval: 1500,
+  });
+  const statsQuery = useQuery({
+    queryKey: ["conversion-stats"],
+    queryFn: api.conversionStats,
+    refetchInterval: 1500,
+  });
 
-  const completedDownloads = (downloadsQuery.data || []).filter((d) => d.status === "completed");
+  const completedDownloads = (downloadsQuery.data || []).filter(
+    (d) => d.status === "completed",
+  );
 
   // figure out whether the chosen source is audio or video, to pick which format list to show
   const isAudioSource = useMemo(() => {
@@ -51,7 +81,12 @@ export default function ConvertPage() {
 
   function pickSourceKind(kind) {
     setSourceKind(kind);
-    const defaults = kind === "library" ? audioFormats[0] : (isAudioSource ? audioFormats[0] : videoFormats[0]);
+    const defaults =
+      kind === "library"
+        ? audioFormats[0]
+        : isAudioSource
+          ? audioFormats[0]
+          : videoFormats[0];
     if (defaults) setTargetFormat(defaults);
   }
 
@@ -60,9 +95,16 @@ export default function ConvertPage() {
       const fields = {
         source_kind: sourceKind,
         target_format: targetFormat,
-        target_bitrate: audioFormats.includes(targetFormat) && !isLossless ? targetBitrate : null,
-        target_resolution: videoFormats.includes(targetFormat) ? targetResolution : null,
-        save_to_library: audioFormats.includes(targetFormat) ? saveToLibrary : false,
+        target_bitrate:
+          audioFormats.includes(targetFormat) && !isLossless
+            ? targetBitrate
+            : null,
+        target_resolution: videoFormats.includes(targetFormat)
+          ? targetResolution
+          : null,
+        save_to_library: audioFormats.includes(targetFormat)
+          ? saveToLibrary
+          : false,
       };
       if (sourceKind === "upload") fields.file = file;
       if (sourceKind === "library") fields.source_ref = libraryTrackId;
@@ -94,7 +136,9 @@ export default function ConvertPage() {
       <header className="flex items-start justify-between gap-6 mb-6">
         <div>
           <h1 className="font-display font-bold text-2xl">Convert</h1>
-          <p className="text-sm text-parchment-500 mt-1">Re-encode a file into a different format.</p>
+          <p className="text-sm text-parchment-500 mt-1">
+            Re-encode a file into a different format.
+          </p>
         </div>
         <div className="flex gap-4 font-mono text-right">
           <StatPill label="Active" value={stats?.active} />
@@ -114,7 +158,9 @@ export default function ConvertPage() {
               key={t.key}
               onClick={() => pickSourceKind(t.key)}
               className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
-                sourceKind === t.key ? "bg-brass-600 text-parchment-100" : "text-parchment-500 hover:text-parchment-100"
+                sourceKind === t.key
+                  ? "bg-brass-600 text-parchment-100"
+                  : "text-parchment-500 hover:text-parchment-100"
               }`}
             >
               {t.label}
@@ -148,10 +194,16 @@ export default function ConvertPage() {
 
         {sourceKind === "library" && (
           <Labeled label="Library track">
-            <select className="select w-full" value={libraryTrackId} onChange={(e) => setLibraryTrackId(e.target.value)}>
+            <select
+              className="select w-full"
+              value={libraryTrackId}
+              onChange={(e) => setLibraryTrackId(e.target.value)}
+            >
               <option value="">Select a track…</option>
               {(libraryQuery.data || []).map((t) => (
-                <option key={t.id} value={t.id}>{t.artist} — {t.title} ({t.ext})</option>
+                <option key={t.id} value={t.id}>
+                  {t.artist} — {t.title} ({t.ext})
+                </option>
               ))}
             </select>
           </Labeled>
@@ -159,38 +211,55 @@ export default function ConvertPage() {
 
         {sourceKind === "download" && (
           <Labeled label="Completed download">
-          <select
-            className="select w-full"
-            value={downloadId}
-            onChange={(e) => {
-              setDownloadId(e.target.value);
-              const d = completedDownloads.find((x) => String(x.id) === e.target.value);
-              const list = d?.media_type === "audio" ? audioFormats : videoFormats;
-              if (list[0]) setTargetFormat(list[0]);
-            }}
-          >
-            <option value="">Select a completed download…</option>
-            {completedDownloads.map((d) => (
-              <option key={d.id} value={d.id}>{d.title || d.url} ({d.media_type})</option>
-            ))}
-          </select>
+            <select
+              className="select w-full"
+              value={downloadId}
+              onChange={(e) => {
+                setDownloadId(e.target.value);
+                const d = completedDownloads.find(
+                  (x) => String(x.id) === e.target.value,
+                );
+                const list =
+                  d?.media_type === "audio" ? audioFormats : videoFormats;
+                if (list[0]) setTargetFormat(list[0]);
+              }}
+            >
+              <option value="">Select a completed download…</option>
+              {completedDownloads.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.title || d.url} ({d.media_type})
+                </option>
+              ))}
+            </select>
           </Labeled>
         )}
 
         <div className="flex items-end gap-3 flex-wrap pt-1">
           <Labeled label="Target format">
-            <select className="select" value={targetFormat} onChange={(e) => setTargetFormat(e.target.value)}>
+            <select
+              className="select"
+              value={targetFormat}
+              onChange={(e) => setTargetFormat(e.target.value)}
+            >
               {formatList.map((f) => (
-                <option key={f} value={f}>{f.toUpperCase()}</option>
+                <option key={f} value={f}>
+                  {f.toUpperCase()}
+                </option>
               ))}
             </select>
           </Labeled>
 
           {audioFormats.includes(targetFormat) && !isLossless && (
             <Labeled label="Bitrate">
-              <select className="select" value={targetBitrate} onChange={(e) => setTargetBitrate(e.target.value)}>
+              <select
+                className="select"
+                value={targetBitrate}
+                onChange={(e) => setTargetBitrate(e.target.value)}
+              >
                 {bitrates.map((b) => (
-                  <option key={b} value={b}>{b}</option>
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
                 ))}
               </select>
             </Labeled>
@@ -198,9 +267,15 @@ export default function ConvertPage() {
 
           {videoFormats.includes(targetFormat) && (
             <Labeled label="Resolution">
-              <select className="select" value={targetResolution} onChange={(e) => setTargetResolution(e.target.value)}>
+              <select
+                className="select"
+                value={targetResolution}
+                onChange={(e) => setTargetResolution(e.target.value)}
+              >
                 {resolutions.map((r) => (
-                  <option key={r} value={r}>{r === "source" ? "Original resolution" : `${r}p`}</option>
+                  <option key={r} value={r}>
+                    {r === "source" ? "Original resolution" : `${r}p`}
+                  </option>
                 ))}
               </select>
             </Labeled>
@@ -208,7 +283,11 @@ export default function ConvertPage() {
 
           {audioFormats.includes(targetFormat) && (
             <label className="flex items-center gap-2 text-xs font-mono text-parchment-300 cursor-pointer">
-              <input type="checkbox" checked={saveToLibrary} onChange={(e) => setSaveToLibrary(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={saveToLibrary}
+                onChange={(e) => setSaveToLibrary(e.target.checked)}
+              />
               Save result to library
             </label>
           )}
@@ -218,7 +297,8 @@ export default function ConvertPage() {
             onClick={() => convertMutation.mutate()}
             disabled={!canSubmit || convertMutation.isPending}
           >
-            <ConvertIcon className="w-3.5 h-3.5" /> {convertMutation.isPending ? "Queuing…" : "Convert"}
+            <ConvertIcon className="w-3.5 h-3.5" />{" "}
+            {convertMutation.isPending ? "Queuing…" : "Convert"}
           </button>
         </div>
       </div>
@@ -253,8 +333,12 @@ export default function ConvertPage() {
 function StatPill({ label, value }) {
   return (
     <div>
-      <div className="text-lg font-bold text-brass-400 leading-none">{value ?? "—"}</div>
-      <div className="text-[10px] uppercase tracking-wider text-parchment-700 mt-1">{label}</div>
+      <div className="text-lg font-bold text-brass-400 leading-none">
+        {value ?? "—"}
+      </div>
+      <div className="text-[10px] uppercase tracking-wider text-parchment-700 mt-1">
+        {label}
+      </div>
     </div>
   );
 }

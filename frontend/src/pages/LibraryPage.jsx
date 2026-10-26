@@ -1,6 +1,16 @@
 import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, RefreshCw, FolderTree, ChevronDown, ChevronRight, Music2, ImagePlus, User, Pencil } from "lucide-react";
+import {
+  Search,
+  RefreshCw,
+  FolderTree,
+  ChevronDown,
+  ChevronRight,
+  Music2,
+  ImagePlus,
+  User,
+  Pencil,
+} from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../api.js";
 import { formatDuration, formatBytes } from "../utils.js";
@@ -25,12 +35,17 @@ export default function LibraryPage() {
     enabled: !!search.trim(),
   });
 
-  const statsQuery = useQuery({ queryKey: ["library-stats"], queryFn: api.libraryStats });
+  const statsQuery = useQuery({
+    queryKey: ["library-stats"],
+    queryFn: api.libraryStats,
+  });
 
   const organizeMutation = useMutation({
     mutationFn: () => api.organizeLibrary(),
     onSuccess: (res) => {
-      toast.success(`Organized: ${res.moved} moved, ${res.unchanged} already tidy${res.errors.length ? `, ${res.errors.length} errors` : ""}`);
+      toast.success(
+        `Organized: ${res.moved} moved, ${res.unchanged} already tidy${res.errors.length ? `, ${res.errors.length} errors` : ""}`,
+      );
       refresh();
     },
     onError: (e) => toast.error(e.message),
@@ -51,28 +66,34 @@ export default function LibraryPage() {
   }
 
   function renameArtist(artist, newName) {
-    return api.renameArtist(artist.id, newName).then((res) => {
-      toast.success(
-        `Renamed — ${res.renamed} track${res.renamed === 1 ? "" : "s"} moved${res.errors.length ? `, ${res.errors.length} errors` : ""}`
-      );
-      setOpenArtists((s) => {
-        if (!s.has(artist.name)) return s;
-        const next = new Set(s);
-        next.delete(artist.name);
-        next.add(newName);
-        return next;
-      });
-      refresh();
-    }).catch((e) => toast.error(e.message));
+    return api
+      .renameArtist(artist.id, newName)
+      .then((res) => {
+        toast.success(
+          `Renamed — ${res.renamed} track${res.renamed === 1 ? "" : "s"} moved${res.errors.length ? `, ${res.errors.length} errors` : ""}`,
+        );
+        setOpenArtists((s) => {
+          if (!s.has(artist.name)) return s;
+          const next = new Set(s);
+          next.delete(artist.name);
+          next.add(newName);
+          return next;
+        });
+        refresh();
+      })
+      .catch((e) => toast.error(e.message));
   }
 
   function renameAlbum(album, newName) {
-    return api.renameAlbum(album.id, newName).then((res) => {
-      toast.success(
-        `Renamed — ${res.renamed} track${res.renamed === 1 ? "" : "s"} moved${res.errors.length ? `, ${res.errors.length} errors` : ""}`
-      );
-      refresh();
-    }).catch((e) => toast.error(e.message));
+    return api
+      .renameAlbum(album.id, newName)
+      .then((res) => {
+        toast.success(
+          `Renamed — ${res.renamed} track${res.renamed === 1 ? "" : "s"} moved${res.errors.length ? `, ${res.errors.length} errors` : ""}`,
+        );
+        refresh();
+      })
+      .catch((e) => toast.error(e.message));
   }
 
   const stats = statsQuery.data;
@@ -84,19 +105,26 @@ export default function LibraryPage() {
       <header className="flex items-start justify-between gap-6 mb-6">
         <div>
           <h1 className="font-display font-bold text-2xl">Library</h1>
-          <p className="text-sm text-parchment-500 mt-1">Browse and edit the music library.</p>
+          <p className="text-sm text-parchment-500 mt-1">
+            Browse and edit the music library.
+          </p>
         </div>
         <div className="flex gap-4 font-mono text-right">
           <StatPill label="Artists" value={stats?.artist_count} />
           <StatPill label="Albums" value={stats?.album_count} />
           <StatPill label="Tracks" value={stats?.track_count} />
-          <StatPill label="Size" value={stats ? formatBytes(stats.total_size) : "—"} />
+          <StatPill
+            label="Size"
+            value={stats ? formatBytes(stats.total_size) : "—"}
+          />
         </div>
       </header>
 
       <div className="flex items-end gap-2 mb-6">
         <div className="flex-1">
-          <label htmlFor="library-search" className="label-eyebrow block mb-1">Search library</label>
+          <label htmlFor="library-search" className="label-eyebrow block mb-1">
+            Search library
+          </label>
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-parchment-700" />
             <input
@@ -108,7 +136,10 @@ export default function LibraryPage() {
             />
           </div>
         </div>
-        <button className="btn-ghost flex items-center gap-1.5" onClick={refresh}>
+        <button
+          className="btn-ghost flex items-center gap-1.5"
+          onClick={refresh}
+        >
           <RefreshCw className="w-3.5 h-3.5" /> Refresh
         </button>
         <button
@@ -117,12 +148,17 @@ export default function LibraryPage() {
           disabled={organizeMutation.isPending}
           title="Move every track to match its tags (Artist/Album/Title)"
         >
-          <FolderTree className="w-3.5 h-3.5" /> {organizeMutation.isPending ? "Organizing…" : "Organize all"}
+          <FolderTree className="w-3.5 h-3.5" />{" "}
+          {organizeMutation.isPending ? "Organizing…" : "Organize all"}
         </button>
       </div>
 
       {isSearching ? (
-        <SearchResults data={searchQuery.data} loading={searchQuery.isLoading} onOpen={setActiveTrack} />
+        <SearchResults
+          data={searchQuery.data}
+          loading={searchQuery.isLoading}
+          onOpen={setActiveTrack}
+        />
       ) : (
         <ArtistTree
           tree={tree}
@@ -136,7 +172,10 @@ export default function LibraryPage() {
         />
       )}
 
-      <TrackEditDrawer track={activeTrack} onClose={() => setActiveTrack(null)} />
+      <TrackEditDrawer
+        track={activeTrack}
+        onClose={() => setActiveTrack(null)}
+      />
     </div>
   );
 }
@@ -144,15 +183,20 @@ export default function LibraryPage() {
 function StatPill({ label, value }) {
   return (
     <div>
-      <div className="text-lg font-bold text-brass-400 leading-none">{value ?? "—"}</div>
-      <div className="text-[10px] uppercase tracking-wider text-parchment-700 mt-1">{label}</div>
+      <div className="text-lg font-bold text-brass-400 leading-none">
+        {value ?? "—"}
+      </div>
+      <div className="text-[10px] uppercase tracking-wider text-parchment-700 mt-1">
+        {label}
+      </div>
     </div>
   );
 }
 
 function SearchResults({ data, loading, onOpen }) {
   if (loading) return <EmptyState text="Searching…" />;
-  if (!data || data.length === 0) return <EmptyState text="No matching tracks." />;
+  if (!data || data.length === 0)
+    return <EmptyState text="No matching tracks." />;
   return (
     <div className="panel divide-y divide-ink-600">
       {data.map((t) => (
@@ -162,7 +206,16 @@ function SearchResults({ data, loading, onOpen }) {
   );
 }
 
-function ArtistTree({ tree, loading, openArtists, onToggleArtist, onOpenTrack, onChanged, onRenameArtist, onRenameAlbum }) {
+function ArtistTree({
+  tree,
+  loading,
+  openArtists,
+  onToggleArtist,
+  onOpenTrack,
+  onChanged,
+  onRenameArtist,
+  onRenameAlbum,
+}) {
   if (loading) return <EmptyState text="Reading your library…" />;
   if (!tree || tree.artist_count === 0) {
     return (
@@ -177,10 +230,19 @@ function ArtistTree({ tree, loading, openArtists, onToggleArtist, onOpenTrack, o
         return (
           <div key={artist.id} className="panel overflow-hidden">
             <div className="w-full flex items-center justify-between px-4 py-3 hover:bg-ink-700/50 transition">
-              <button className="flex items-center gap-2.5 flex-1 min-w-0" onClick={() => onToggleArtist(artist.name)}>
-                {open ? <ChevronDown className="w-4 h-4 text-parchment-500 shrink-0" /> : <ChevronRight className="w-4 h-4 text-parchment-500 shrink-0" />}
+              <button
+                className="flex items-center gap-2.5 flex-1 min-w-0"
+                onClick={() => onToggleArtist(artist.name)}
+              >
+                {open ? (
+                  <ChevronDown className="w-4 h-4 text-parchment-500 shrink-0" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-parchment-500 shrink-0" />
+                )}
                 <ArtistAvatar artist={artist} />
-                <span className="font-display font-semibold text-sm truncate">{artist.name}</span>
+                <span className="font-display font-semibold text-sm truncate">
+                  {artist.name}
+                </span>
               </button>
               <div className="flex items-center gap-3 shrink-0">
                 <RenameButton
@@ -191,14 +253,19 @@ function ArtistTree({ tree, loading, openArtists, onToggleArtist, onOpenTrack, o
                 <ArtUploadButton
                   title="Upload artist picture"
                   onUpload={(file) =>
-                    api.uploadArtistPicture(artist.id, file).then(() => {
-                      toast.success("Artist picture updated");
-                      onChanged();
-                    }).catch((e) => toast.error(e.message))
+                    api
+                      .uploadArtistPicture(artist.id, file)
+                      .then(() => {
+                        toast.success("Artist picture updated");
+                        onChanged();
+                      })
+                      .catch((e) => toast.error(e.message))
                   }
                 />
                 <span className="text-xs font-mono text-parchment-700">
-                  {artist.album_count} album{artist.album_count === 1 ? "" : "s"} · {artist.track_count} track{artist.track_count === 1 ? "" : "s"}
+                  {artist.album_count} album
+                  {artist.album_count === 1 ? "" : "s"} · {artist.track_count}{" "}
+                  track{artist.track_count === 1 ? "" : "s"}
                 </span>
               </div>
             </div>
@@ -218,7 +285,10 @@ function ArtistTree({ tree, loading, openArtists, onToggleArtist, onOpenTrack, o
                       />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm">{album.name}</p>
-                        <p className="text-xs font-mono text-parchment-700">{album.track_count} track{album.track_count === 1 ? "" : "s"}</p>
+                        <p className="text-xs font-mono text-parchment-700">
+                          {album.track_count} track
+                          {album.track_count === 1 ? "" : "s"}
+                        </p>
                       </div>
                       <RenameButton
                         title="Rename album"
@@ -228,16 +298,25 @@ function ArtistTree({ tree, loading, openArtists, onToggleArtist, onOpenTrack, o
                       <ArtUploadButton
                         title="Upload album art (writes cover.jpg + embeds into every track)"
                         onUpload={(file) =>
-                          api.uploadAlbumArtwork(album.id, file).then((res) => {
-                            toast.success(`Album art updated — embedded in ${res.tracks_embedded} track${res.tracks_embedded === 1 ? "" : "s"}`);
-                            onChanged();
-                          }).catch((e) => toast.error(e.message))
+                          api
+                            .uploadAlbumArtwork(album.id, file)
+                            .then((res) => {
+                              toast.success(
+                                `Album art updated — embedded in ${res.tracks_embedded} track${res.tracks_embedded === 1 ? "" : "s"}`,
+                              );
+                              onChanged();
+                            })
+                            .catch((e) => toast.error(e.message))
                         }
                       />
                     </div>
                     <div className="rounded-lg overflow-hidden border border-ink-600 divide-y divide-ink-600">
                       {album.tracks.map((t) => (
-                        <TrackRow key={t.id} track={t} onOpen={() => onOpenTrack(t)} />
+                        <TrackRow
+                          key={t.id}
+                          track={t}
+                          onOpen={() => onOpenTrack(t)}
+                        />
                       ))}
                     </div>
                   </div>
@@ -324,15 +403,21 @@ function TrackRow({ track, onOpen, showAlbum }) {
       className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-ink-700/60 transition text-left bg-ink-800"
     >
       <span className="font-mono text-xs text-parchment-700 w-6 text-right shrink-0">
-        {track.tracknumber ? String(track.tracknumber).split("/")[0].padStart(2, "0") : "—"}
+        {track.tracknumber
+          ? String(track.tracknumber).split("/")[0].padStart(2, "0")
+          : "—"}
       </span>
       <div className="flex-1 min-w-0">
         <p className="text-sm truncate">{track.title}</p>
         {showAlbum && (
-          <p className="text-xs font-mono text-parchment-700 truncate">{track.artist} · {track.album}</p>
+          <p className="text-xs font-mono text-parchment-700 truncate">
+            {track.artist} · {track.album}
+          </p>
         )}
       </div>
-      <span className="text-xs font-mono text-parchment-700 shrink-0">{formatDuration(track.duration)}</span>
+      <span className="text-xs font-mono text-parchment-700 shrink-0">
+        {formatDuration(track.duration)}
+      </span>
     </button>
   );
 }

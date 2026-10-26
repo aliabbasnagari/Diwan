@@ -1,5 +1,16 @@
 import { NavLink } from "react-router-dom";
-import { Library, DownloadCloud, Settings, RefreshCcw, LogOut, User, Tag, Scissors, ListOrdered, Copy } from "lucide-react";
+import {
+  Library,
+  DownloadCloud,
+  Settings,
+  RefreshCcw,
+  LogOut,
+  User,
+  Tag,
+  Scissors,
+  ListOrdered,
+  Copy,
+} from "lucide-react";
 import { useAuth } from "../auth.jsx";
 
 import logo from "../assets/logo-dark.svg";
@@ -21,12 +32,10 @@ export default function Sidebar() {
   return (
     <aside className="w-56 shrink-0 border-r border-ink-600 flex flex-col">
       <div className="px-5 py-6 flex items-center gap-2.5 border-b border-ink-600">
-        <img
-          src={logo}
-          alt="Diwan Logo"
-          className="h-8 w-auto"
-        />
-        <span className="font-display font-bold text-2xl tracking-tight">Diwan</span>
+        <img src={logo} alt="Diwan Logo" className="h-8 w-auto" />
+        <span className="font-display font-bold text-2xl tracking-tight">
+          Diwan
+        </span>
       </div>
 
       <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
@@ -36,9 +45,10 @@ export default function Sidebar() {
             to={to}
             end={end}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${isActive
-                ? "bg-brass-900 text-brass-400"
-                : "text-parchment-500 hover:text-parchment-100 hover:bg-ink-800"
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
+                isActive
+                  ? "bg-brass-900 text-brass-400"
+                  : "text-parchment-500 hover:text-parchment-100 hover:bg-ink-800"
               }`
             }
           >

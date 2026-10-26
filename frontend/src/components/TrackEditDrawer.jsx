@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { X, Trash2, FolderTree, Upload, Scissors, FileText } from "lucide-react";
+import {
+  X,
+  Trash2,
+  FolderTree,
+  Upload,
+  Scissors,
+  FileText,
+} from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../api.js";
 import { formatDuration, formatBytes } from "../utils.js";
@@ -9,9 +16,17 @@ import SuggestInput from "./SuggestInput.jsx";
 
 const FIELDS = [
   { key: "title", label: "Title" },
-  { key: "artist", label: "Artist", hint: "Comma-separate for multiple artists — saved as real multi-value tags, not one joined string." },
+  {
+    key: "artist",
+    label: "Artist",
+    hint: "Comma-separate for multiple artists — saved as real multi-value tags, not one joined string.",
+  },
   { key: "album", label: "Album" },
-  { key: "albumartist", label: "Album artist", hint: "The canonical artist this album is grouped under (used for folder placement and the artist picture)." },
+  {
+    key: "albumartist",
+    label: "Album artist",
+    hint: "The canonical artist this album is grouped under (used for folder placement and the artist picture).",
+  },
   { key: "genre", label: "Genre" },
   { key: "date", label: "Year" },
   { key: "tracknumber", label: "Track #" },
@@ -98,7 +113,11 @@ export default function TrackEditDrawer({ track, onClose }) {
   const organizeMutation = useMutation({
     mutationFn: () => api.organizeTrack(track.id),
     onSuccess: (updated) => {
-      toast.success(updated.path === track.path ? "Already in the right place" : `Moved to ${updated.path}`);
+      toast.success(
+        updated.path === track.path
+          ? "Already in the right place"
+          : `Moved to ${updated.path}`,
+      );
       invalidate();
     },
     onError: (e) => toast.error(e.message),
@@ -130,7 +149,10 @@ export default function TrackEditDrawer({ track, onClose }) {
       <div className="relative w-full max-w-md h-full bg-ink-800 border-l border-ink-600 flex flex-col animate-in slide-in-from-right">
         <div className="flex items-center justify-between px-5 py-4 border-b border-ink-600">
           <h2 className="font-display font-semibold text-sm">Edit track</h2>
-          <button onClick={onClose} className="text-parchment-500 hover:text-parchment-100">
+          <button
+            onClick={onClose}
+            className="text-parchment-500 hover:text-parchment-100"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -139,12 +161,18 @@ export default function TrackEditDrawer({ track, onClose }) {
           <div className="flex items-center gap-4">
             <div
               className="w-20 h-20 rounded-lg bg-ink-950 ring-1 ring-black/40 bg-cover bg-center shrink-0 cursor-pointer relative group"
-              style={track.has_art ? { backgroundImage: `url(${api.trackArtworkUrl(track.id)})` } : {}}
+              style={
+                track.has_art
+                  ? { backgroundImage: `url(${api.trackArtworkUrl(track.id)})` }
+                  : {}
+              }
               onClick={() => fileInputRef.current?.click()}
               title="Click to replace this track's embedded art"
             >
               {!track.has_art && (
-                <div className="w-full h-full flex items-center justify-center text-parchment-700 font-display text-lg">♪</div>
+                <div className="w-full h-full flex items-center justify-center text-parchment-700 font-display text-lg">
+                  ♪
+                </div>
               )}
               <div className="absolute inset-0 rounded-lg bg-black/0 group-hover:bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                 <Upload className="w-5 h-5 text-parchment-100" />
@@ -163,32 +191,59 @@ export default function TrackEditDrawer({ track, onClose }) {
             />
             <div className="text-xs font-mono text-parchment-500 space-y-1 min-w-0">
               <p className="label-eyebrow !text-parchment-500">Track art</p>
-              <p className="truncate" title={track.path}>{track.path}</p>
-              <p>{formatDuration(track.duration)} · {formatBytes(track.filesize)} · {track.ext?.toUpperCase()}</p>
+              <p className="truncate" title={track.path}>
+                {track.path}
+              </p>
+              <p>
+                {formatDuration(track.duration)} · {formatBytes(track.filesize)}{" "}
+                · {track.ext?.toUpperCase()}
+              </p>
             </div>
           </div>
 
           <p className="text-[11px] text-parchment-700 -mt-3">
-            This image is embedded in this file only. To set shared cover art for the whole album, use "Upload album art" from the album header in the Library view.
+            This image is embedded in this file only. To set shared cover art
+            for the whole album, use "Upload album art" from the album header in
+            the Library view.
           </p>
 
           <div className="grid grid-cols-2 gap-3">
             {FIELDS.map((f) => (
-              <div key={f.key} className={f.key === "title" || f.key === "artist" || f.key === "album" || f.key === "comment" ? "col-span-2" : ""}>
+              <div
+                key={f.key}
+                className={
+                  f.key === "title" ||
+                  f.key === "artist" ||
+                  f.key === "album" ||
+                  f.key === "comment"
+                    ? "col-span-2"
+                    : ""
+                }
+              >
                 <SuggestInput
                   label={f.label}
                   value={form[f.key] ?? ""}
-                  onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((s) => ({ ...s, [f.key]: e.target.value }))
+                  }
                   suggestions={suggestions?.[FIELD_SUGGESTION_KEY[f.key]] || []}
                   multi={f.key === "artist"}
                 />
-                {f.hint && <span className="block text-[10.5px] text-parchment-700 mt-1 leading-snug">{f.hint}</span>}
+                {f.hint && (
+                  <span className="block text-[10.5px] text-parchment-700 mt-1 leading-snug">
+                    {f.hint}
+                  </span>
+                )}
               </div>
             ))}
           </div>
 
           <label className="flex items-center gap-2 text-xs font-mono text-parchment-500 cursor-pointer">
-            <input type="checkbox" checked={reorganize} onChange={(e) => setReorganize(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={reorganize}
+              onChange={(e) => setReorganize(e.target.checked)}
+            />
             Move file to match Artist/Album/Title on save
           </label>
 
@@ -211,7 +266,10 @@ export default function TrackEditDrawer({ track, onClose }) {
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    file.text().then(setLyricsText).catch(() => toast.error("Could not read file"));
+                    file
+                      .text()
+                      .then(setLyricsText)
+                      .catch(() => toast.error("Could not read file"));
                   }
                   e.target.value = "";
                 }}
@@ -219,13 +277,16 @@ export default function TrackEditDrawer({ track, onClose }) {
             </div>
             <textarea
               className="input w-full min-h-[140px] resize-y"
-              placeholder={"Plain text, or LRC-timestamped for synced lyrics:\n[00:12.00] First line\n[00:16.40] Next line"}
+              placeholder={
+                "Plain text, or LRC-timestamped for synced lyrics:\n[00:12.00] First line\n[00:16.40] Next line"
+              }
               value={lyricsText}
               onChange={(e) => setLyricsText(e.target.value)}
             />
             <div className="flex items-center justify-between gap-3 mt-1.5">
               <span className="text-[10.5px] text-parchment-700 leading-snug">
-                Saved as a .lrc file next to the track — Navidrome reads it directly, synced or plain.
+                Saved as a .lrc file next to the track — Navidrome reads it
+                directly, synced or plain.
               </span>
               <button
                 className="btn-ghost shrink-0"
@@ -239,7 +300,11 @@ export default function TrackEditDrawer({ track, onClose }) {
         </div>
 
         <div className="px-5 py-4 border-t border-ink-600 flex items-center gap-2">
-          <button className="btn-primary flex-1" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+          <button
+            className="btn-primary flex-1"
+            onClick={() => saveMutation.mutate()}
+            disabled={saveMutation.isPending}
+          >
             {saveMutation.isPending ? "Saving…" : "Save changes"}
           </button>
           <button
@@ -260,7 +325,12 @@ export default function TrackEditDrawer({ track, onClose }) {
           <button
             className="btn-ghost-danger flex items-center gap-1.5"
             onClick={() => {
-              if (confirm(`Delete "${track.title}"? This removes the file from disk.`)) deleteMutation.mutate();
+              if (
+                confirm(
+                  `Delete "${track.title}"? This removes the file from disk.`,
+                )
+              )
+                deleteMutation.mutate();
             }}
             disabled={deleteMutation.isPending}
           >

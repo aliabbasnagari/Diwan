@@ -29,7 +29,13 @@ const STATUS_LABEL = {
   cancelled: "Cancelled",
 };
 
-const ACTIVE = new Set(["queued", "fetching_info", "downloading", "processing", "tagging"]);
+const ACTIVE = new Set([
+  "queued",
+  "fetching_info",
+  "downloading",
+  "processing",
+  "tagging",
+]);
 
 export default function DownloadCard({ item }) {
   const qc = useQueryClient();
@@ -47,10 +53,16 @@ export default function DownloadCard({ item }) {
     qc.invalidateQueries({ queryKey: ["download-stats"] });
   };
 
-  const cancelMutation = useMutation({ mutationFn: () => api.cancelDownload(item.id), onSuccess: invalidate });
+  const cancelMutation = useMutation({
+    mutationFn: () => api.cancelDownload(item.id),
+    onSuccess: invalidate,
+  });
   const retryMutation = useMutation({
     mutationFn: () => api.retryDownload(item.id),
-    onSuccess: () => { toast.success("Retrying"); invalidate(); },
+    onSuccess: () => {
+      toast.success("Retrying");
+      invalidate();
+    },
   });
 
   const removeMutation = useMutation({
@@ -80,7 +92,11 @@ export default function DownloadCard({ item }) {
   return (
     <div className="panel p-3.5 flex gap-3.5 items-center relative">
       {item.thumbnail ? (
-        <img src={item.thumbnail} className="w-16 h-16 rounded-lg object-cover bg-ink-950 shrink-0" alt="" />
+        <img
+          src={item.thumbnail}
+          className="w-16 h-16 rounded-lg object-cover bg-ink-950 shrink-0"
+          alt=""
+        />
       ) : (
         <div className="w-16 h-16 rounded-lg bg-ink-950 shrink-0 flex items-center justify-center text-brass-600 font-display text-lg">
           {item.media_type === "audio" ? "♪" : "▶"}
@@ -89,8 +105,12 @@ export default function DownloadCard({ item }) {
 
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <p className="text-sm font-medium truncate">{item.title || item.url}</p>
-          <span className={`text-[10px] font-mono uppercase tracking-wide px-2 py-0.5 rounded shrink-0 ${STATUS_STYLE[item.status] || ""}`}>
+          <p className="text-sm font-medium truncate">
+            {item.title || item.url}
+          </p>
+          <span
+            className={`text-[10px] font-mono uppercase tracking-wide px-2 py-0.5 rounded shrink-0 ${STATUS_STYLE[item.status] || ""}`}
+          >
             {STATUS_LABEL[item.status] || item.status}
           </span>
         </div>
@@ -99,7 +119,11 @@ export default function DownloadCard({ item }) {
           {item.uploader ? `${item.uploader} · ` : ""}
           {item.extractor || "—"}
           {item.duration ? ` · ${formatDuration(item.duration)}` : ""}
-          {item.media_type === "audio" ? ` · ${item.audio_format}` : item.quality && item.quality !== "best" ? ` · ${item.quality}p` : ""}
+          {item.media_type === "audio"
+            ? ` · ${item.audio_format}`
+            : item.quality && item.quality !== "best"
+              ? ` · ${item.quality}p`
+              : ""}
         </p>
 
         <div className="flex gap-[3px] h-2 mt-2.5">
@@ -111,8 +135,8 @@ export default function DownloadCard({ item }) {
                   ? isComplete
                     ? "bg-moss-500 border-moss-500 shadow-[0_0_6px_rgba(127,174,131,0.5)]"
                     : isError
-                    ? "bg-rust-500 border-rust-500 shadow-[0_0_6px_rgba(193,85,76,0.5)]"
-                    : "bg-brass-500 border-brass-500 shadow-[0_0_6px_rgba(217,164,65,0.5)]"
+                      ? "bg-rust-500 border-rust-500 shadow-[0_0_6px_rgba(193,85,76,0.5)]"
+                      : "bg-brass-500 border-brass-500 shadow-[0_0_6px_rgba(217,164,65,0.5)]"
                   : "bg-ink-950 border-ink-600"
               }`}
             />
@@ -120,12 +144,26 @@ export default function DownloadCard({ item }) {
         </div>
 
         <div className="flex justify-between mt-1.5 text-[10.5px] font-mono text-parchment-700">
-          <span>{active ? `${pct.toFixed(0)}%` : isComplete ? formatBytes(item.filesize) : ""}</span>
-          <span>{item.speed ? `${item.speed} ` : ""}{item.eta ? `ETA ${item.eta}` : ""}</span>
+          <span>
+            {active
+              ? `${pct.toFixed(0)}%`
+              : isComplete
+                ? formatBytes(item.filesize)
+                : ""}
+          </span>
+          <span>
+            {item.speed ? `${item.speed} ` : ""}
+            {item.eta ? `ETA ${item.eta}` : ""}
+          </span>
         </div>
 
         {item.error_message && (
-          <p className="text-[11px] font-mono text-rust-400 mt-1 truncate" title={item.error_message}>{item.error_message}</p>
+          <p
+            className="text-[11px] font-mono text-rust-400 mt-1 truncate"
+            title={item.error_message}
+          >
+            {item.error_message}
+          </p>
         )}
 
         {isComplete && item.library_path && (
@@ -137,17 +175,30 @@ export default function DownloadCard({ item }) {
 
       <div className="flex flex-col gap-1.5 shrink-0">
         {isComplete && (
-          <a href={api.fileUrl(item.id)} download className="btn-ghost flex items-center gap-1 justify-center">
+          <a
+            href={api.fileUrl(item.id)}
+            download
+            className="btn-ghost flex items-center gap-1 justify-center"
+          >
             <ExternalLink className="w-3 h-3" /> Save
           </a>
         )}
         {active && (
-          <button className="btn-ghost-danger" onClick={() => cancelMutation.mutate()}>Cancel</button>
+          <button
+            className="btn-ghost-danger"
+            onClick={() => cancelMutation.mutate()}
+          >
+            Cancel
+          </button>
         )}
         {isError && (
-          <button className="btn-ghost" onClick={() => retryMutation.mutate()}>Retry</button>
+          <button className="btn-ghost" onClick={() => retryMutation.mutate()}>
+            Retry
+          </button>
         )}
-        <button className="btn-ghost-danger" onClick={openConfirm}>Remove</button>
+        <button className="btn-ghost-danger" onClick={openConfirm}>
+          Remove
+        </button>
       </div>
 
       {showConfirm && (
@@ -165,10 +216,18 @@ export default function DownloadCard({ item }) {
             </label>
 
             <div className="flex justify-end gap-2 mt-1">
-              <button className="btn-ghost" onClick={closeConfirm} disabled={removeMutation.isPending}>
+              <button
+                className="btn-ghost"
+                onClick={closeConfirm}
+                disabled={removeMutation.isPending}
+              >
                 Cancel
               </button>
-              <button className="btn-ghost-danger" onClick={confirmRemove} disabled={removeMutation.isPending}>
+              <button
+                className="btn-ghost-danger"
+                onClick={confirmRemove}
+                disabled={removeMutation.isPending}
+              >
                 {removeMutation.isPending ? "Removing…" : "Remove"}
               </button>
             </div>

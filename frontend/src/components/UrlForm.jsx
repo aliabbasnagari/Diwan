@@ -45,14 +45,21 @@ export default function UrlForm({ downloads = [] }) {
   const duplicate = useMemo(() => {
     const norm = normalizeUrl(url);
     if (!norm) return null;
-    return downloads.find((d) => normalizeUrl(d.url) === norm || normalizeUrl(d.webpage_url) === norm) || null;
+    return (
+      downloads.find(
+        (d) =>
+          normalizeUrl(d.url) === norm || normalizeUrl(d.webpage_url) === norm,
+      ) || null
+    );
   }, [url, downloads]);
 
   const fetchMutation = useMutation({
     mutationFn: () => api.preview(url.trim()),
     onSuccess: (info) => {
       setPreview(info);
-      const qualities = info.video_qualities || [{ value: "best", label: "Best available" }];
+      const qualities = info.video_qualities || [
+        { value: "best", label: "Best available" },
+      ];
       setQuality(qualities[0].value);
 
       setTagTitle(info.track || info.title || "");
@@ -127,7 +134,8 @@ export default function UrlForm({ downloads = [] }) {
             onClick={() => fetchMutation.mutate()}
             disabled={fetchMutation.isPending || !url.trim()}
           >
-            <Search className="w-3.5 h-3.5" /> {fetchMutation.isPending ? "Fetching…" : "Fetch"}
+            <Search className="w-3.5 h-3.5" />{" "}
+            {fetchMutation.isPending ? "Fetching…" : "Fetch"}
           </button>
         ) : (
           <button
@@ -135,7 +143,8 @@ export default function UrlForm({ downloads = [] }) {
             onClick={() => downloadMutation.mutate()}
             disabled={downloadMutation.isPending}
           >
-            <DownloadIcon className="w-3.5 h-3.5" /> {downloadMutation.isPending ? "Queuing…" : "Download"}
+            <DownloadIcon className="w-3.5 h-3.5" />{" "}
+            {downloadMutation.isPending ? "Queuing…" : "Download"}
           </button>
         )}
       </div>
@@ -146,7 +155,8 @@ export default function UrlForm({ downloads = [] }) {
           <span className="truncate">
             {duplicate.status === "completed"
               ? "Already downloaded"
-              : duplicate.status === "failed" || duplicate.status === "cancelled"
+              : duplicate.status === "failed" ||
+                  duplicate.status === "cancelled"
                 ? "Already in history (failed/cancelled)"
                 : "Already in the spool"}
             {duplicate.title ? ` — “${duplicate.title}”` : ""}
@@ -162,8 +172,11 @@ export default function UrlForm({ downloads = [] }) {
                 <button
                   key={t}
                   onClick={() => setMediaType(t)}
-                  className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${mediaType === t ? "bg-brass-600 text-parchment-100" : "text-parchment-500 hover:text-parchment-100"
-                    }`}
+                  className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
+                    mediaType === t
+                      ? "bg-brass-600 text-parchment-100"
+                      : "text-parchment-500 hover:text-parchment-100"
+                  }`}
                 >
                   {t === "video" ? "Video" : "Audio only"}
                 </button>
@@ -172,7 +185,11 @@ export default function UrlForm({ downloads = [] }) {
 
             {mediaType === "video" ? (
               <Labeled label="Quality">
-                <select className="select" value={quality} onChange={(e) => setQuality(e.target.value)}>
+                <select
+                  className="select"
+                  value={quality}
+                  onChange={(e) => setQuality(e.target.value)}
+                >
                   {qualities.map((q) => (
                     <option key={q.value} value={q.value}>
                       {q.label}
@@ -183,9 +200,15 @@ export default function UrlForm({ downloads = [] }) {
               </Labeled>
             ) : (
               <Labeled label="Audio format">
-                <select className="select" value={audioFormat} onChange={(e) => setAudioFormat(e.target.value)}>
+                <select
+                  className="select"
+                  value={audioFormat}
+                  onChange={(e) => setAudioFormat(e.target.value)}
+                >
                   {AUDIO_FORMATS.map((f) => (
-                    <option key={f} value={f}>{f.toUpperCase()}</option>
+                    <option key={f} value={f}>
+                      {f.toUpperCase()}
+                    </option>
                   ))}
                 </select>
               </Labeled>
@@ -193,7 +216,11 @@ export default function UrlForm({ downloads = [] }) {
 
             {mediaType === "video" && (
               <label className="flex items-center gap-2 text-xs font-mono text-parchment-500 cursor-pointer">
-                <input type="checkbox" checked={subtitles} onChange={(e) => setSubtitles(e.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={subtitles}
+                  onChange={(e) => setSubtitles(e.target.checked)}
+                />
                 Subtitles (en)
               </label>
             )}
@@ -202,8 +229,13 @@ export default function UrlForm({ downloads = [] }) {
           {mediaType === "audio" && (
             <div className="rounded-lg border border-ink-600 p-3.5 space-y-3">
               <label className="flex items-center gap-2 text-xs font-mono text-parchment-300 cursor-pointer">
-                <input type="checkbox" checked={addToLibrary} onChange={(e) => setAddToLibrary(e.target.checked)} />
-                Add to library after download (tagged &amp; organized for Navidrome)
+                <input
+                  type="checkbox"
+                  checked={addToLibrary}
+                  onChange={(e) => setAddToLibrary(e.target.checked)}
+                />
+                Add to library after download (tagged &amp; organized for
+                Navidrome)
               </label>
               {addToLibrary && (
                 <div className="grid grid-cols-3 gap-2">
@@ -258,13 +290,23 @@ export default function UrlForm({ downloads = [] }) {
           )}
 
           <div className="flex gap-3 items-center bg-ink-950 border border-ink-600 rounded-lg p-3">
-            {preview?.thumbnail && <img src={preview.thumbnail} alt="" className="w-24 h-14 object-cover rounded-md shrink-0" />}
+            {preview?.thumbnail && (
+              <img
+                src={preview.thumbnail}
+                alt=""
+                className="w-24 h-14 object-cover rounded-md shrink-0"
+              />
+            )}
             <div className="min-w-0">
-              <p className="text-sm font-medium truncate">{preview?.title || "Untitled"}</p>
+              <p className="text-sm font-medium truncate">
+                {preview?.title || "Untitled"}
+              </p>
               <p className="text-xs font-mono text-parchment-500">
                 {preview?.uploader ? `${preview.uploader} · ` : ""}
                 {preview?.extractor || "unknown source"}
-                {preview?.duration ? ` · ${formatDuration(preview.duration)}` : ""}
+                {preview?.duration
+                  ? ` · ${formatDuration(preview.duration)}`
+                  : ""}
               </p>
             </div>
           </div>

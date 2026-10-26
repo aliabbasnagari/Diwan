@@ -45,7 +45,8 @@ export default {
         mono: ["JetBrains Mono", "monospace"],
       },
       boxShadow: {
-        panel: "0 10px 30px -15px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.03)",
+        panel:
+          "0 10px 30px -15px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.03)",
       },
     },
   },

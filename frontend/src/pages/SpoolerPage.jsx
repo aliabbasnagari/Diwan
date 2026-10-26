@@ -4,7 +4,13 @@ import UrlForm from "../components/UrlForm.jsx";
 import DownloadCard from "../components/DownloadCard.jsx";
 import HistoryCard from "../components/HistoryCard.jsx";
 
-const ACTIVE = new Set(["queued", "fetching_info", "downloading", "processing", "tagging"]);
+const ACTIVE = new Set([
+  "queued",
+  "fetching_info",
+  "downloading",
+  "processing",
+  "tagging",
+]);
 
 export default function SpoolerPage() {
   const downloadsQuery = useQuery({
@@ -72,8 +78,12 @@ export default function SpoolerPage() {
 function StatPill({ label, value }) {
   return (
     <div>
-      <div className="text-lg font-bold text-brass-400 leading-none">{value ?? "—"}</div>
-      <div className="text-[10px] uppercase tracking-wider text-parchment-700 mt-1">{label}</div>
+      <div className="text-lg font-bold text-brass-400 leading-none">
+        {value ?? "—"}
+      </div>
+      <div className="text-[10px] uppercase tracking-wider text-parchment-700 mt-1">
+        {label}
+      </div>
     </div>
   );
 }

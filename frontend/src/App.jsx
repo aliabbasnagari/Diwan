@@ -18,7 +18,10 @@ export default function App() {
   if (status === "checking") {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Disc3 className="w-7 h-7 text-brass-500 animate-spin" strokeWidth={1.75} />
+        <Disc3
+          className="w-7 h-7 text-brass-500 animate-spin"
+          strokeWidth={1.75}
+        />
       </div>
     );
   }

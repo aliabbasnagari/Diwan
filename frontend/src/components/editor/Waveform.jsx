@@ -4,10 +4,12 @@ import { api } from "../../api.js";
 
 const RULER_H = 22;
 const LANE_GAP = 6;
-const MIN_VIEW = 0.02;    // seconds — deepest zoom
-const MIN_RANGE = 0.01;   // seconds — smallest allowed trim range
-const HANDLE_HIT = 8;     // px either side of a handle that grabs it
-const TICK_STEPS = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1800];
+const MIN_VIEW = 0.02; // seconds — deepest zoom
+const MIN_RANGE = 0.01; // seconds — smallest allowed trim range
+const HANDLE_HIT = 8; // px either side of a handle that grabs it
+const TICK_STEPS = [
+  0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1800,
+];
 
 const COLORS = {
   bg: "#141310",
@@ -29,7 +31,11 @@ export function formatTime(t, decimals = 1) {
 /** "1:23.4", "83.4" or "1:02:03" -> seconds, or null if it doesn't parse. */
 export function parseTime(text) {
   const parts = String(text).trim().split(":");
-  if (parts.length > 3 || parts.some((p) => p === "" || Number.isNaN(Number(p)))) return null;
+  if (
+    parts.length > 3 ||
+    parts.some((p) => p === "" || Number.isNaN(Number(p)))
+  )
+    return null;
   return parts.reduce((acc, p) => acc * 60 + Number(p), 0);
 }
 
@@ -45,8 +51,17 @@ export function zoomView(view, duration, factor, anchor) {
 }
 
 export default function Waveform({
-  sessionId, version, duration, channels, view, onViewChange,
-  range, onRangeChange, onSeek, audioRef, height = 240,
+  sessionId,
+  version,
+  duration,
+  channels,
+  view,
+  onViewChange,
+  range,
+  onRangeChange,
+  onSeek,
+  audioRef,
+  height = 240,
 }) {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
@@ -58,15 +73,29 @@ export default function Waveform({
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => setWidth(Math.max(200, Math.floor(el.clientWidth))));
+    const ro = new ResizeObserver(() =>
+      setWidth(Math.max(200, Math.floor(el.clientWidth))),
+    );
     ro.observe(el);
     setWidth(Math.max(200, Math.floor(el.clientWidth)));
     return () => ro.disconnect();
   }, []);
 
   const { data } = useQuery({
-    queryKey: ["editor-peaks", sessionId, version, view.start.toFixed(3), view.end.toFixed(3), width],
-    queryFn: () => api.editorPeaks(sessionId, { start: view.start, end: view.end, buckets: width }),
+    queryKey: [
+      "editor-peaks",
+      sessionId,
+      version,
+      view.start.toFixed(3),
+      view.end.toFixed(3),
+      width,
+    ],
+    queryFn: () =>
+      api.editorPeaks(sessionId, {
+        start: view.start,
+        end: view.end,
+        buckets: width,
+      }),
     placeholderData: (prev) => prev,
     staleTime: Infinity,
   });
@@ -88,11 +117,17 @@ export default function Waveform({
 
     // ruler
     const pxPerSec = width / viewLen;
-    const step = TICK_STEPS.find((s) => s * pxPerSec >= 90) ?? TICK_STEPS[TICK_STEPS.length - 1];
+    const step =
+      TICK_STEPS.find((s) => s * pxPerSec >= 90) ??
+      TICK_STEPS[TICK_STEPS.length - 1];
     const decimals = step < 0.1 ? 2 : step < 1 ? 1 : 0;
     ctx.font = "10px JetBrains Mono, monospace";
     ctx.textBaseline = "top";
-    for (let t = Math.ceil(view.start / step) * step; t <= view.end; t += step) {
+    for (
+      let t = Math.ceil(view.start / step) * step;
+      t <= view.end;
+      t += step
+    ) {
       const x = Math.round(xOf(t)) + 0.5;
       ctx.strokeStyle = COLORS.tick;
       ctx.beginPath();
@@ -135,10 +170,19 @@ export default function Waveform({
     const xe = xOf(range.end);
     ctx.fillStyle = COLORS.dim;
     if (xs > 0) ctx.fillRect(0, RULER_H, Math.min(xs, width), height - RULER_H);
-    if (xe < width) ctx.fillRect(Math.max(xe, 0), RULER_H, width - Math.max(xe, 0), height - RULER_H);
+    if (xe < width)
+      ctx.fillRect(
+        Math.max(xe, 0),
+        RULER_H,
+        width - Math.max(xe, 0),
+        height - RULER_H,
+      );
 
     ctx.fillStyle = COLORS.handle;
-    [[xs, -1], [xe, 1]].forEach(([x, dir]) => {
+    [
+      [xs, -1],
+      [xe, 1],
+    ].forEach(([x, dir]) => {
       if (x < -6 || x > width + 6) return;
       ctx.fillRect(x - (dir < 0 ? 0 : 2), RULER_H, 2, height - RULER_H);
       // grip tab on the side facing the kept region
@@ -153,7 +197,16 @@ export default function Waveform({
 
   // keep the latest props reachable from the non-React event handlers below
   const latest = useRef({});
-  latest.current = { view, viewLen, duration, onViewChange, range, onRangeChange, onSeek, width };
+  latest.current = {
+    view,
+    viewLen,
+    duration,
+    onViewChange,
+    range,
+    onRangeChange,
+    onSeek,
+    width,
+  };
 
   // ---- playhead (updated outside React so it doesn't re-render at 60fps) ----
   useEffect(() => {
@@ -161,7 +214,13 @@ export default function Waveform({
     const tick = () => {
       const a = audioRef.current;
       const el = headRef.current;
-      const { view: v, viewLen: len, width: w, onViewChange: change, duration: dur } = latest.current;
+      const {
+        view: v,
+        viewLen: len,
+        width: w,
+        onViewChange: change,
+        duration: dur,
+      } = latest.current;
       if (a && el) {
         const t = a.currentTime;
         if (!a.paused && t > v.end && len < dur) {
@@ -183,7 +242,12 @@ export default function Waveform({
     const el = canvasRef.current;
     if (!el) return;
     const onWheel = (e) => {
-      const { view: v, viewLen: len, duration: dur, onViewChange: change } = latest.current;
+      const {
+        view: v,
+        viewLen: len,
+        duration: dur,
+        onViewChange: change,
+      } = latest.current;
       e.preventDefault();
       const rect = el.getBoundingClientRect();
       if (e.ctrlKey || e.metaKey) {
@@ -212,7 +276,9 @@ export default function Waveform({
 
   function onMouseMove(e) {
     if (e.buttons) return;
-    canvasRef.current.style.cursor = handleAt(e.clientX) ? "col-resize" : "text";
+    canvasRef.current.style.cursor = handleAt(e.clientX)
+      ? "col-resize"
+      : "text";
   }
 
   // click = move cursor · drag = new range · drag a handle = adjust · shift+click = move nearest handle
@@ -221,13 +287,19 @@ export default function Waveform({
     const rect = canvasRef.current.getBoundingClientRect();
     const timeAt = (clientX) => {
       const { view: v, viewLen: len, duration: dur } = latest.current;
-      return clamp(v.start + ((clientX - rect.left) / rect.width) * len, 0, dur);
+      return clamp(
+        v.start + ((clientX - rect.left) / rect.width) * len,
+        0,
+        dur,
+      );
     };
     const setEdge = (edge, t) => {
       const { range: r, duration: dur } = latest.current;
-      latest.current.onRangeChange(edge === "start"
-        ? { start: clamp(t, 0, r.end - MIN_RANGE), end: r.end }
-        : { start: r.start, end: clamp(t, r.start + MIN_RANGE, dur) });
+      latest.current.onRangeChange(
+        edge === "start"
+          ? { start: clamp(t, 0, r.end - MIN_RANGE), end: r.end }
+          : { start: r.start, end: clamp(t, r.start + MIN_RANGE, dur) },
+      );
     };
 
     const t0 = timeAt(e.clientX);
@@ -235,7 +307,9 @@ export default function Waveform({
 
     if (grabbed || e.shiftKey) {
       const { range: r } = latest.current;
-      const edge = grabbed ?? (Math.abs(t0 - r.start) < Math.abs(t0 - r.end) ? "start" : "end");
+      const edge =
+        grabbed ??
+        (Math.abs(t0 - r.start) < Math.abs(t0 - r.end) ? "start" : "end");
       setEdge(edge, t0);
       const move = (ev) => setEdge(edge, timeAt(ev.clientX));
       const up = () => {
@@ -253,7 +327,11 @@ export default function Waveform({
       if (!dragging && Math.abs(ev.clientX - startX) < 3) return;
       dragging = true;
       const t = timeAt(ev.clientX);
-      if (Math.abs(t - t0) >= MIN_RANGE) latest.current.onRangeChange({ start: Math.min(t0, t), end: Math.max(t0, t) });
+      if (Math.abs(t - t0) >= MIN_RANGE)
+        latest.current.onRangeChange({
+          start: Math.min(t0, t),
+          end: Math.max(t0, t),
+        });
     };
     const up = () => {
       window.removeEventListener("mousemove", move);
@@ -268,7 +346,11 @@ export default function Waveform({
 
   return (
     <div>
-      <div ref={wrapRef} className="relative w-full rounded-lg overflow-hidden ring-1 ring-black/40 select-none" style={{ height }}>
+      <div
+        ref={wrapRef}
+        className="relative w-full rounded-lg overflow-hidden ring-1 ring-black/40 select-none"
+        style={{ height }}
+      >
         <canvas
           ref={canvasRef}
           style={{ width: "100%", height, display: "block", cursor: "text" }}

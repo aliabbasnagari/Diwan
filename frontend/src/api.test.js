@@ -33,9 +33,12 @@ describe("library: rename", () => {
 
     const result = await api.renameArtist("QXJ0aXN0", "New Name");
 
-    expect(mockClient.post).toHaveBeenCalledWith("/library/artists/QXJ0aXN0/rename", {
-      new_name: "New Name",
-    });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      "/library/artists/QXJ0aXN0/rename",
+      {
+        new_name: "New Name",
+      },
+    );
     expect(result).toEqual({ renamed: 3, errors: [] });
   });
 
@@ -44,9 +47,12 @@ describe("library: rename", () => {
 
     const result = await api.renameAlbum("QWxidW0", "New Album");
 
-    expect(mockClient.post).toHaveBeenCalledWith("/library/albums/QWxidW0/rename", {
-      new_name: "New Album",
-    });
+    expect(mockClient.post).toHaveBeenCalledWith(
+      "/library/albums/QWxidW0/rename",
+      {
+        new_name: "New Album",
+      },
+    );
     expect(result).toEqual({ renamed: 5, errors: [] });
   });
 });
@@ -57,7 +63,9 @@ describe("library: lyrics", () => {
 
     const result = await api.getLyrics("track123");
 
-    expect(mockClient.get).toHaveBeenCalledWith("/library/tracks/track123/lyrics");
+    expect(mockClient.get).toHaveBeenCalledWith(
+      "/library/tracks/track123/lyrics",
+    );
     expect(result).toEqual({ text: "la la la" });
   });
 
@@ -66,16 +74,21 @@ describe("library: lyrics", () => {
 
     const result = await api.updateLyrics("track123", "new lyrics");
 
-    expect(mockClient.put).toHaveBeenCalledWith("/library/tracks/track123/lyrics", {
-      text: "new lyrics",
-    });
+    expect(mockClient.put).toHaveBeenCalledWith(
+      "/library/tracks/track123/lyrics",
+      {
+        text: "new lyrics",
+      },
+    );
     expect(result).toEqual({ text: "new lyrics" });
   });
 });
 
 describe("unwrap error handling", () => {
   it("rejects with the server's detail message", async () => {
-    mockClient.get.mockRejectedValue({ response: { data: { detail: "Track not found" } } });
+    mockClient.get.mockRejectedValue({
+      response: { data: { detail: "Track not found" } },
+    });
 
     await expect(api.getLyrics("missing")).rejects.toThrow("Track not found");
   });

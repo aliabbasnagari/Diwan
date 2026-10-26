@@ -33,20 +33,24 @@ client.interceptors.response.use(
       window.dispatchEvent(new Event("diwan:unauthorized"));
     }
     return Promise.reject(err);
-  }
+  },
 );
 
 function unwrap(promise) {
-  return promise.then((r) => r.data).catch((err) => {
-    const detail = err?.response?.data?.detail || err.message || "Request failed";
-    throw new Error(detail);
-  });
+  return promise
+    .then((r) => r.data)
+    .catch((err) => {
+      const detail =
+        err?.response?.data?.detail || err.message || "Request failed";
+      throw new Error(detail);
+    });
 }
 
 export const api = {
   // --- auth ---
   authConfig: () => unwrap(client.get("/auth/config")),
-  login: (username, password) => unwrap(client.post("/auth/login", { username, password })),
+  login: (username, password) =>
+    unwrap(client.post("/auth/login", { username, password })),
   me: () => unwrap(client.get("/auth/me")),
   logout: () => unwrap(client.post("/auth/logout")),
 
@@ -63,18 +67,21 @@ export const api = {
         params: {
           delete_file: deleteFile,
         },
-      })
+      }),
     ),
   fileUrl: (id) => `/api/downloads/${id}/file?${tokenParam()}`,
   downloadStats: () => unwrap(client.get("/stats")),
 
   // --- bulk spooler ---
   listBulkItems: () => unwrap(client.get("/bulk-spooler/items")),
-  createBulkItems: (payload) => unwrap(client.post("/bulk-spooler/items", payload)),
+  createBulkItems: (payload) =>
+    unwrap(client.post("/bulk-spooler/items", payload)),
   bulkSpoolerStatus: () => unwrap(client.get("/bulk-spooler/status")),
   bulkSpoolerStats: () => unwrap(client.get("/bulk-spooler/stats")),
-  reorderBulkItems: (order) => unwrap(client.patch("/bulk-spooler/reorder", { order })),
-  cancelBulkItem: (id) => unwrap(client.post(`/bulk-spooler/items/${id}/cancel`)),
+  reorderBulkItems: (order) =>
+    unwrap(client.patch("/bulk-spooler/reorder", { order })),
+  cancelBulkItem: (id) =>
+    unwrap(client.post(`/bulk-spooler/items/${id}/cancel`)),
   retryBulkItem: (id) => unwrap(client.post(`/bulk-spooler/items/${id}/retry`)),
   deleteBulkItem: (id) => unwrap(client.delete(`/bulk-spooler/items/${id}`)),
 
@@ -83,64 +90,92 @@ export const api = {
   duplicateScanStatus: () => unwrap(client.get("/duplicates/scan/status")),
   cancelDuplicateScan: () => unwrap(client.post("/duplicates/scan/cancel")),
   listDuplicateGroups: (category) =>
-    unwrap(client.get("/duplicates/groups", { params: category ? { category } : {} })),
+    unwrap(
+      client.get("/duplicates/groups", {
+        params: category ? { category } : {},
+      }),
+    ),
   resolveDuplicateGroup: (id, keepPaths) =>
-    unwrap(client.post(`/duplicates/groups/${id}/resolve`, { keep_paths: keepPaths })),
-  ignoreDuplicateGroup: (id) => unwrap(client.post(`/duplicates/groups/${id}/ignore`)),
+    unwrap(
+      client.post(`/duplicates/groups/${id}/resolve`, {
+        keep_paths: keepPaths,
+      }),
+    ),
+  ignoreDuplicateGroup: (id) =>
+    unwrap(client.post(`/duplicates/groups/${id}/ignore`)),
   listDuplicateTrash: () => unwrap(client.get("/duplicates/trash")),
-  restoreDuplicateTrash: (path) => unwrap(client.post("/duplicates/trash/restore", { path })),
-  deleteDuplicateTrashItem: (path) => unwrap(client.delete("/duplicates/trash", { params: { path } })),
+  restoreDuplicateTrash: (path) =>
+    unwrap(client.post("/duplicates/trash/restore", { path })),
+  deleteDuplicateTrashItem: (path) =>
+    unwrap(client.delete("/duplicates/trash", { params: { path } })),
   emptyDuplicateTrash: () => unwrap(client.post("/duplicates/trash/empty")),
 
   // --- library: tracks ---
   libraryTree: () => unwrap(client.get("/library/tree")),
-  libraryTracks: (q) => unwrap(client.get("/library/tracks", { params: q ? { q } : {} })),
+  libraryTracks: (q) =>
+    unwrap(client.get("/library/tracks", { params: q ? { q } : {} })),
   libraryStats: () => unwrap(client.get("/library/stats")),
   getTrack: (id) => unwrap(client.get(`/library/tracks/${id}`)),
-  updateTrack: (id, patch) => unwrap(client.put(`/library/tracks/${id}`, patch)),
+  updateTrack: (id, patch) =>
+    unwrap(client.put(`/library/tracks/${id}`, patch)),
   deleteTrack: (id) => unwrap(client.delete(`/library/tracks/${id}`)),
   organizeTrack: (id) => unwrap(client.post(`/library/tracks/${id}/organize`)),
-  organizeLibrary: (trackIds) => unwrap(client.post("/library/organize", { track_ids: trackIds || null })),
+  organizeLibrary: (trackIds) =>
+    unwrap(client.post("/library/organize", { track_ids: trackIds || null })),
   renameArtist: (artistId, newName) =>
-    unwrap(client.post(`/library/artists/${artistId}/rename`, { new_name: newName })),
+    unwrap(
+      client.post(`/library/artists/${artistId}/rename`, { new_name: newName }),
+    ),
   renameAlbum: (albumId, newName) =>
-    unwrap(client.post(`/library/albums/${albumId}/rename`, { new_name: newName })),
+    unwrap(
+      client.post(`/library/albums/${albumId}/rename`, { new_name: newName }),
+    ),
 
   // --- library: track audio (inline playback) ---
   trackAudioUrl: (id) => `/api/library/tracks/${id}/audio?${tokenParam()}`,
 
   // --- library: track-level lyrics (.lrc sidecar file) ---
   getLyrics: (id) => unwrap(client.get(`/library/tracks/${id}/lyrics`)),
-  updateLyrics: (id, text) => unwrap(client.put(`/library/tracks/${id}/lyrics`, { text })),
+  updateLyrics: (id, text) =>
+    unwrap(client.put(`/library/tracks/${id}/lyrics`, { text })),
 
   // --- library: track-level art (embedded in that one file only) ---
-  trackArtworkUrl: (id) => `/api/library/tracks/${id}/artwork?_=${Date.now()}&${tokenParam()}`,
+  trackArtworkUrl: (id) =>
+    `/api/library/tracks/${id}/artwork?_=${Date.now()}&${tokenParam()}`,
   uploadTrackArtwork: (id, file) => {
     const form = new FormData();
     form.append("file", file);
-    return unwrap(client.post(`/library/tracks/${id}/artwork`, form, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }));
+    return unwrap(
+      client.post(`/library/tracks/${id}/artwork`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      }),
+    );
   },
 
   // --- library: album-level art (cover.jpg in the folder + embedded in every track) ---
-  albumArtworkUrl: (albumId) => `/api/library/albums/${albumId}/artwork?_=${Date.now()}&${tokenParam()}`,
+  albumArtworkUrl: (albumId) =>
+    `/api/library/albums/${albumId}/artwork?_=${Date.now()}&${tokenParam()}`,
   uploadAlbumArtwork: (albumId, file) => {
     const form = new FormData();
     form.append("file", file);
-    return unwrap(client.post(`/library/albums/${albumId}/artwork`, form, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }));
+    return unwrap(
+      client.post(`/library/albums/${albumId}/artwork`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      }),
+    );
   },
 
   // --- library: artist pictures (saved to a dedicated folder for Navidrome's ArtistImageFolder) ---
-  artistPictureUrl: (artistId) => `/api/library/artists/${artistId}/picture?_=${Date.now()}&${tokenParam()}`,
+  artistPictureUrl: (artistId) =>
+    `/api/library/artists/${artistId}/picture?_=${Date.now()}&${tokenParam()}`,
   uploadArtistPicture: (artistId, file) => {
     const form = new FormData();
     form.append("file", file);
-    return unwrap(client.post(`/library/artists/${artistId}/picture`, form, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }));
+    return unwrap(
+      client.post(`/library/artists/${artistId}/picture`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      }),
+    );
   },
 
   // --- settings ---
@@ -150,12 +185,15 @@ export const api = {
   uploadCookies: (file) => {
     const form = new FormData();
     form.append("file", file);
-    return unwrap(client.post("/settings/cookies", form, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }));
+    return unwrap(
+      client.post("/settings/cookies", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      }),
+    );
   },
   deleteCookies: () => unwrap(client.delete("/settings/cookies")),
-  saveCookiesText: (text) => unwrap(client.post("/settings/cookies/text", { text })),
+  saveCookiesText: (text) =>
+    unwrap(client.post("/settings/cookies/text", { text })),
 
   // --- navidrome ---
   triggerScan: () => unwrap(client.post("/navidrome/scan")),
@@ -164,8 +202,10 @@ export const api = {
   // --- suggestions ---
   getTagSuggestions: () => unwrap(client.get("/suggestions")),
   getAllTagSuggestions: () => unwrap(client.get("/suggestions/all")),
-  createTagSuggestion: (field, value) => unwrap(client.post("/suggestions", { field, value })),
-  updateTagSuggestion: (id, patch) => unwrap(client.put(`/suggestions/${id}`, patch)),
+  createTagSuggestion: (field, value) =>
+    unwrap(client.post("/suggestions", { field, value })),
+  updateTagSuggestion: (id, patch) =>
+    unwrap(client.put(`/suggestions/${id}`, patch)),
   deleteTagSuggestion: (id) => unwrap(client.delete(`/suggestions/${id}`)),
   populateTagSuggestions: () => unwrap(client.post("/suggestions/populate")),
 
@@ -178,9 +218,11 @@ export const api = {
     Object.entries(fields).forEach(([k, v]) => {
       if (v !== null && v !== undefined) form.append(k, v);
     });
-    return unwrap(client.post("/convert/jobs", form, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }));
+    return unwrap(
+      client.post("/convert/jobs", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      }),
+    );
   },
   cancelConversion: (id) => unwrap(client.post(`/convert/jobs/${id}/cancel`)),
   deleteConversion: (id) => unwrap(client.delete(`/convert/jobs/${id}`)),
@@ -189,14 +231,22 @@ export const api = {
 
   // --- editor (ffmpeg-backed trimmer; edits live in a server session until saved) ---
   editorOptions: () => unwrap(client.get("/editor/options")),
-  editorOpen: (trackId) => unwrap(client.post("/editor/sessions", { track_id: trackId })),
+  editorOpen: (trackId) =>
+    unwrap(client.post("/editor/sessions", { track_id: trackId })),
   editorGet: (sid) => unwrap(client.get(`/editor/sessions/${sid}`)),
   editorClose: (sid) => unwrap(client.delete(`/editor/sessions/${sid}`)),
   editorPeaks: (sid, { start, end, buckets }) =>
-    unwrap(client.get(`/editor/sessions/${sid}/peaks`, { params: { start, end, buckets } })),
-  editorEdit: (sid, body) => unwrap(client.post(`/editor/sessions/${sid}/edit`, body)),
+    unwrap(
+      client.get(`/editor/sessions/${sid}/peaks`, {
+        params: { start, end, buckets },
+      }),
+    ),
+  editorEdit: (sid, body) =>
+    unwrap(client.post(`/editor/sessions/${sid}/edit`, body)),
   editorUndo: (sid) => unwrap(client.post(`/editor/sessions/${sid}/undo`)),
   editorRedo: (sid) => unwrap(client.post(`/editor/sessions/${sid}/redo`)),
-  editorSave: (sid, body) => unwrap(client.post(`/editor/sessions/${sid}/save`, body)),
-  editorAudioUrl: (sid, version) => `/api/editor/sessions/${sid}/audio?v=${version}&${tokenParam()}`,
+  editorSave: (sid, body) =>
+    unwrap(client.post(`/editor/sessions/${sid}/save`, body)),
+  editorAudioUrl: (sid, version) =>
+    `/api/editor/sessions/${sid}/audio?v=${version}&${tokenParam()}`,
 };

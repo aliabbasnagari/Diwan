@@ -32,7 +32,10 @@ export default function HistoryCard({ item }) {
 
   const retryMutation = useMutation({
     mutationFn: () => api.retryDownload(item.id),
-    onSuccess: () => { toast.success("Retrying"); invalidate(); },
+    onSuccess: () => {
+      toast.success("Retrying");
+      invalidate();
+    },
   });
 
   const removeMutation = useMutation({
@@ -62,7 +65,11 @@ export default function HistoryCard({ item }) {
   return (
     <div className="panel p-3.5 flex gap-3.5 items-center relative">
       {item.thumbnail ? (
-        <img src={item.thumbnail} className="w-16 h-16 rounded-lg object-cover bg-ink-950 shrink-0" alt="" />
+        <img
+          src={item.thumbnail}
+          className="w-16 h-16 rounded-lg object-cover bg-ink-950 shrink-0"
+          alt=""
+        />
       ) : (
         <div className="w-16 h-16 rounded-lg bg-ink-950 shrink-0 flex items-center justify-center text-brass-600 font-display text-lg">
           {item.media_type === "audio" ? "♪" : "▶"}
@@ -71,8 +78,12 @@ export default function HistoryCard({ item }) {
 
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <p className="text-sm font-medium truncate">{item.title || item.url}</p>
-          <span className={`text-[10px] font-mono uppercase tracking-wide px-2 py-0.5 rounded shrink-0 ${STATUS_STYLE[item.status] || ""}`}>
+          <p className="text-sm font-medium truncate">
+            {item.title || item.url}
+          </p>
+          <span
+            className={`text-[10px] font-mono uppercase tracking-wide px-2 py-0.5 rounded shrink-0 ${STATUS_STYLE[item.status] || ""}`}
+          >
             {STATUS_LABEL[item.status] || item.status}
           </span>
         </div>
@@ -81,7 +92,11 @@ export default function HistoryCard({ item }) {
           {item.uploader ? `${item.uploader} · ` : ""}
           {item.extractor || "—"}
           {item.duration ? ` · ${formatDuration(item.duration)}` : ""}
-          {item.media_type === "audio" ? ` · ${item.audio_format}` : item.quality && item.quality !== "best" ? ` · ${item.quality}p` : ""}
+          {item.media_type === "audio"
+            ? ` · ${item.audio_format}`
+            : item.quality && item.quality !== "best"
+              ? ` · ${item.quality}p`
+              : ""}
         </p>
 
         <div className="flex justify-between mt-1.5 text-[10.5px] font-mono text-parchment-700">
@@ -90,7 +105,12 @@ export default function HistoryCard({ item }) {
         </div>
 
         {item.error_message && (
-          <p className="text-[11px] font-mono text-rust-400 mt-1 truncate" title={item.error_message}>{item.error_message}</p>
+          <p
+            className="text-[11px] font-mono text-rust-400 mt-1 truncate"
+            title={item.error_message}
+          >
+            {item.error_message}
+          </p>
         )}
 
         {isComplete && item.file_exists && item.library_path && (
@@ -101,21 +121,30 @@ export default function HistoryCard({ item }) {
 
         {isComplete && !item.file_exists && (
           <p className="flex items-center gap-1.5 text-[11px] font-mono text-rust-400 mt-1.5">
-            <AlertTriangle className="w-3 h-3" /> File missing on disk: {item.filepath}
+            <AlertTriangle className="w-3 h-3" /> File missing on disk:{" "}
+            {item.filepath}
           </p>
         )}
       </div>
 
       <div className="flex flex-col gap-1.5 shrink-0">
         {isComplete && item.file_exists && (
-          <a href={api.fileUrl(item.id)} download className="btn-ghost flex items-center gap-1 justify-center">
+          <a
+            href={api.fileUrl(item.id)}
+            download
+            className="btn-ghost flex items-center gap-1 justify-center"
+          >
             <ExternalLink className="w-3 h-3" /> Save
           </a>
         )}
         {(isError || !item.file_exists) && (
-          <button className="btn-ghost" onClick={() => retryMutation.mutate()}>Retry</button>
+          <button className="btn-ghost" onClick={() => retryMutation.mutate()}>
+            Retry
+          </button>
         )}
-        <button className="btn-ghost-danger" onClick={openConfirm}>Remove</button>
+        <button className="btn-ghost-danger" onClick={openConfirm}>
+          Remove
+        </button>
       </div>
 
       {showConfirm && (
@@ -133,10 +162,18 @@ export default function HistoryCard({ item }) {
             </label>
 
             <div className="flex justify-end gap-2 mt-1">
-              <button className="btn-ghost" onClick={closeConfirm} disabled={removeMutation.isPending}>
+              <button
+                className="btn-ghost"
+                onClick={closeConfirm}
+                disabled={removeMutation.isPending}
+              >
                 Cancel
               </button>
-              <button className="btn-ghost-danger" onClick={confirmRemove} disabled={removeMutation.isPending}>
+              <button
+                className="btn-ghost-danger"
+                onClick={confirmRemove}
+                disabled={removeMutation.isPending}
+              >
                 {removeMutation.isPending ? "Removing…" : "Remove"}
               </button>
             </div>

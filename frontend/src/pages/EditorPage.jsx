@@ -3,11 +3,31 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  Play, Pause, Square, Repeat, Undo2, Redo2, Crop, Scissors, RotateCcw, ZoomIn, ZoomOut,
-  Maximize2, Plus, X, Loader2, Ear, Sparkles, MapPin,
+  Play,
+  Pause,
+  Square,
+  Repeat,
+  Undo2,
+  Redo2,
+  Crop,
+  Scissors,
+  RotateCcw,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Plus,
+  X,
+  Loader2,
+  Ear,
+  Sparkles,
+  MapPin,
 } from "lucide-react";
 import { api } from "../api.js";
-import Waveform, { formatTime, parseTime, zoomView } from "../components/editor/Waveform.jsx";
+import Waveform, {
+  formatTime,
+  parseTime,
+  zoomView,
+} from "../components/editor/Waveform.jsx";
 import SavePanel from "../components/editor/SavePanel.jsx";
 import TrackPicker from "../components/editor/TrackPicker.jsx";
 
@@ -24,7 +44,9 @@ function ToolBtn({ icon: Icon, label, onClick, disabled, active }) {
       onClick={onClick}
       disabled={disabled}
       className={`p-2 rounded-lg border text-parchment-300 transition disabled:opacity-35 disabled:cursor-not-allowed ${
-        active ? "border-brass-600 text-brass-400 bg-brass-900" : "border-ink-600 hover:border-brass-600 hover:text-brass-400"
+        active
+          ? "border-brass-600 text-brass-400 bg-brass-900"
+          : "border-ink-600 hover:border-brass-600 hover:text-brass-400"
       }`}
     >
       <Icon className="w-4 h-4" strokeWidth={1.75} />
@@ -40,7 +62,8 @@ function CursorReadout({ audioRef }) {
   useEffect(() => {
     let raf;
     const tick = () => {
-      if (ref.current && audioRef.current) ref.current.textContent = formatTime(audioRef.current.currentTime, 2);
+      if (ref.current && audioRef.current)
+        ref.current.textContent = formatTime(audioRef.current.currentTime, 2);
       raf = requestAnimationFrame(tick);
     };
     tick();
@@ -75,12 +98,22 @@ function TimeField({ label, value, onCommit, onSetHere, onHear, hearLabel }) {
           onFocus={() => setEditing(true)}
           onChange={(e) => setText(e.target.value)}
           onBlur={commit}
-          onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
         />
-        <button className="btn-ghost flex items-center gap-1.5" onClick={onSetHere} title="Set to the current playhead position">
+        <button
+          className="btn-ghost flex items-center gap-1.5"
+          onClick={onSetHere}
+          title="Set to the current playhead position"
+        >
           <MapPin className="w-3.5 h-3.5" /> Playhead
         </button>
-        <button className="btn-ghost flex items-center gap-1.5" onClick={onHear} title={hearLabel}>
+        <button
+          className="btn-ghost flex items-center gap-1.5"
+          onClick={onHear}
+          title={hearLabel}
+        >
           <Ear className="w-3.5 h-3.5" /> Hear
         </button>
       </div>
@@ -92,9 +125,9 @@ export default function EditorPage() {
   const qc = useQueryClient();
   const [params, setParams] = useSearchParams();
 
-  const [info, setInfo] = useState(null);        // session info from the server
+  const [info, setInfo] = useState(null); // session info from the server
   const [loading, setLoading] = useState(false); // opening / resuming a session
-  const [busy, setBusy] = useState(false);       // an edit is rendering
+  const [busy, setBusy] = useState(false); // an edit is rendering
   const [view, setView] = useState({ start: 0, end: 1 });
   const [range, setRange] = useState({ start: 0, end: 1 }); // the part you're keeping / removing
   const [loop, setLoop] = useState(false);
@@ -103,10 +136,14 @@ export default function EditorPage() {
   const [silenceWhere, setSilenceWhere] = useState("start");
 
   const audioRef = useRef(null);
-  const restoreRef = useRef(null);  // playback position to restore once a new version has loaded
-  const planRef = useRef(null);     // { from, to, loop } while playing a span
+  const restoreRef = useRef(null); // playback position to restore once a new version has loaded
+  const planRef = useRef(null); // { from, to, loop } while playing a span
 
-  const { data: options } = useQuery({ queryKey: ["editor-options"], queryFn: api.editorOptions, staleTime: Infinity });
+  const { data: options } = useQuery({
+    queryKey: ["editor-options"],
+    queryFn: api.editorOptions,
+    staleTime: Infinity,
+  });
 
   const sid = info?.id;
   const duration = info?.duration ?? 0;
@@ -120,7 +157,8 @@ export default function EditorPage() {
     const saved = sessionStorage.getItem(SESSION_KEY);
     if (!saved) return;
     setLoading(true);
-    api.editorGet(saved)
+    api
+      .editorGet(saved)
       .then(setInfo)
       .catch(() => sessionStorage.removeItem(SESSION_KEY))
       .finally(() => setLoading(false));
@@ -151,7 +189,8 @@ export default function EditorPage() {
   }
 
   async function openTrack(trackId) {
-    if (info?.dirty && !confirm("Discard unsaved edits to the current track?")) return;
+    if (info?.dirty && !confirm("Discard unsaved edits to the current track?"))
+      return;
     setLoading(true);
     try {
       await discardSession();
@@ -192,28 +231,58 @@ export default function EditorPage() {
   }
 
   const edit = (body, opts) => exec(() => api.editorEdit(sid, body), opts);
-  const keepRange = () => !isWhole && edit({ op: "trim", start: range.start, end: range.end });
-  const removeRange = () => !isWhole && edit({ op: "delete", start: range.start, end: range.end }, { cursorTo: range.start });
-  const autoTrimSilence = () => edit({ op: "trim_silence" }, { success: "Silence trimmed from the start and end" });
+  const keepRange = () =>
+    !isWhole && edit({ op: "trim", start: range.start, end: range.end });
+  const removeRange = () =>
+    !isWhole &&
+    edit(
+      { op: "delete", start: range.start, end: range.end },
+      { cursorTo: range.start },
+    );
+  const autoTrimSilence = () =>
+    edit(
+      { op: "trim_silence" },
+      { success: "Silence trimmed from the start and end" },
+    );
   const undo = () => exec(() => api.editorUndo(sid));
   const redo = () => exec(() => api.editorRedo(sid));
 
   function addSilence() {
-    const position = silenceWhere === "start" ? 0 : silenceWhere === "end" ? duration : cursor();
+    const position =
+      silenceWhere === "start"
+        ? 0
+        : silenceWhere === "end"
+          ? duration
+          : cursor();
     const seconds = Number(silenceSeconds);
-    if (!(seconds > 0)) return toast.error("Enter how many seconds of silence to add");
+    if (!(seconds > 0))
+      return toast.error("Enter how many seconds of silence to add");
     edit({ op: "insert_silence", position, seconds }, { cursorTo: position });
   }
 
   async function save(opts) {
-    if (opts.mode === "replace" && !confirm("Overwrite the original file with the trimmed audio? This can't be undone.")) return;
+    if (
+      opts.mode === "replace" &&
+      !confirm(
+        "Overwrite the original file with the trimmed audio? This can't be undone.",
+      )
+    )
+      return;
     setBusy(true);
     try {
       const res = await api.editorSave(sid, opts);
       setInfo(res.session);
-      toast.success(opts.mode === "replace" ? "Original overwritten" : `Saved as ${res.track.path}`);
-      ["library-tree", "library-search", "library-stats", "library-tracks-flat"].forEach((k) =>
-        qc.invalidateQueries({ queryKey: [k] }));
+      toast.success(
+        opts.mode === "replace"
+          ? "Original overwritten"
+          : `Saved as ${res.track.path}`,
+      );
+      [
+        "library-tree",
+        "library-search",
+        "library-stats",
+        "library-tracks-flat",
+      ].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
     } catch (e) {
       toast.error(e.message);
     } finally {
@@ -222,8 +291,13 @@ export default function EditorPage() {
   }
 
   // ---- range editing ----
-  const setStart = (t) => setRange((r) => ({ start: clamp(t, 0, r.end - MIN_RANGE), end: r.end }));
-  const setEnd = (t) => setRange((r) => ({ start: r.start, end: clamp(t, r.start + MIN_RANGE, duration) }));
+  const setStart = (t) =>
+    setRange((r) => ({ start: clamp(t, 0, r.end - MIN_RANGE), end: r.end }));
+  const setEnd = (t) =>
+    setRange((r) => ({
+      start: r.start,
+      end: clamp(t, r.start + MIN_RANGE, duration),
+    }));
 
   // ---- transport ----
   function playSpan(from, to, loopable = false) {
@@ -276,16 +350,27 @@ export default function EditorPage() {
   }, []);
 
   // ---- zoom ----
-  const zoomAnchor = () => (isWhole ? (view.start + view.end) / 2 : (range.start + range.end) / 2);
+  const zoomAnchor = () =>
+    isWhole ? (view.start + view.end) / 2 : (range.start + range.end) / 2;
   const zoomIn = () => setView(zoomView(view, duration, 0.5, zoomAnchor()));
   const zoomOut = () => setView(zoomView(view, duration, 2, zoomAnchor()));
   const zoomFit = () => setView({ start: 0, end: Math.max(duration, 0.001) });
-  const zoomRange = () => setView(zoomView({ start: range.start, end: range.end }, duration, 1.15, (range.start + range.end) / 2));
+  const zoomRange = () =>
+    setView(
+      zoomView(
+        { start: range.start, end: range.end },
+        duration,
+        1.15,
+        (range.start + range.end) / 2,
+      ),
+    );
 
   // ---- keyboard shortcuts ----
   const keys = useRef({});
   keys.current = {
-    togglePlay, undo, redo,
+    togglePlay,
+    undo,
+    redo,
     markStart: () => setStart(cursor()),
     markEnd: () => setEnd(cursor()),
   };
@@ -323,7 +408,8 @@ export default function EditorPage() {
         <header className="mb-6">
           <h1 className="font-display font-bold text-2xl">Trimmer</h1>
           <p className="text-sm text-parchment-500 mt-1">
-            Pick a track to trim, cut or pad with silence. Nothing changes on disk until you save.
+            Pick a track to trim, cut or pad with silence. Nothing changes on
+            disk until you save.
           </p>
         </header>
         {loading ? (
@@ -344,17 +430,24 @@ export default function EditorPage() {
           <h1 className="font-display font-bold text-2xl">Trimmer</h1>
           <p className="text-sm text-parchment-500 mt-1 truncate">
             {info.source_filename}
-            {info.dirty && <span className="text-brass-400"> · unsaved changes</span>}
+            {info.dirty && (
+              <span className="text-brass-400"> · unsaved changes</span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-4">
           <p className="text-xs font-mono text-parchment-500 text-right leading-relaxed">
-            {formatTime(duration, 2)} · {(info.sample_rate / 1000).toFixed(1)} kHz · {info.channels === 1 ? "mono" : "stereo"}
+            {formatTime(duration, 2)} · {(info.sample_rate / 1000).toFixed(1)}{" "}
+            kHz · {info.channels === 1 ? "mono" : "stereo"}
           </p>
           <button
             className="btn-ghost flex items-center gap-1.5"
             onClick={() => {
-              if (info.dirty && !confirm("Close this track and discard unsaved edits?")) return;
+              if (
+                info.dirty &&
+                !confirm("Close this track and discard unsaved edits?")
+              )
+                return;
               discardSession();
             }}
           >
@@ -365,7 +458,13 @@ export default function EditorPage() {
 
       <div className="panel p-4 space-y-3">
         <div className="flex items-center gap-1 flex-wrap">
-          <ToolBtn icon={playing ? Pause : Play} label="Play / pause (Space)" onClick={togglePlay} disabled={busy} active={playing} />
+          <ToolBtn
+            icon={playing ? Pause : Play}
+            label="Play / pause (Space)"
+            onClick={togglePlay}
+            disabled={busy}
+            active={playing}
+          />
           <ToolBtn icon={Square} label="Stop" onClick={stop} disabled={busy} />
           <button
             className="btn-ghost flex items-center gap-1.5 !py-2"
@@ -375,16 +474,40 @@ export default function EditorPage() {
           >
             <Play className="w-3.5 h-3.5" /> Play range
           </button>
-          <ToolBtn icon={Repeat} label="Loop 'Play range'" onClick={() => setLoop((l) => !l)} active={loop} />
+          <ToolBtn
+            icon={Repeat}
+            label="Loop 'Play range'"
+            onClick={() => setLoop((l) => !l)}
+            active={loop}
+          />
           <Divider />
-          <ToolBtn icon={Undo2} label="Undo (Ctrl+Z)" onClick={undo} disabled={busy || !info.can_undo} />
-          <ToolBtn icon={Redo2} label="Redo (Ctrl+Y)" onClick={redo} disabled={busy || !info.can_redo} />
+          <ToolBtn
+            icon={Undo2}
+            label="Undo (Ctrl+Z)"
+            onClick={undo}
+            disabled={busy || !info.can_undo}
+          />
+          <ToolBtn
+            icon={Redo2}
+            label="Redo (Ctrl+Y)"
+            onClick={redo}
+            disabled={busy || !info.can_redo}
+          />
           <Divider />
           <ToolBtn icon={ZoomIn} label="Zoom in" onClick={zoomIn} />
           <ToolBtn icon={ZoomOut} label="Zoom out" onClick={zoomOut} />
           <ToolBtn icon={Maximize2} label="Fit whole track" onClick={zoomFit} />
-          <button className="btn-ghost !py-2" onClick={zoomRange} disabled={isWhole} title="Zoom to the highlighted range">Zoom range</button>
-          {busy && <Loader2 className="w-4 h-4 animate-spin text-brass-400 ml-2" />}
+          <button
+            className="btn-ghost !py-2"
+            onClick={zoomRange}
+            disabled={isWhole}
+            title="Zoom to the highlighted range"
+          >
+            Zoom range
+          </button>
+          {busy && (
+            <Loader2 className="w-4 h-4 animate-spin text-brass-400 ml-2" />
+          )}
         </div>
 
         <div className={busy ? "opacity-60 pointer-events-none" : ""}>
@@ -406,8 +529,10 @@ export default function EditorPage() {
         </div>
 
         <p className="text-xs font-mono text-parchment-700">
-          Drag the gold handles (or drag on the waveform) to choose a range · Click to place the playhead · Ctrl+wheel zooms, wheel pans ·
-          <span className="text-parchment-500"> [ </span>/<span className="text-parchment-500"> ] </span>
+          Drag the gold handles (or drag on the waveform) to choose a range ·
+          Click to place the playhead · Ctrl+wheel zooms, wheel pans ·
+          <span className="text-parchment-500"> [ </span>/
+          <span className="text-parchment-500"> ] </span>
           set start/end at the playhead
         </p>
       </div>
@@ -421,7 +546,12 @@ export default function EditorPage() {
             value={range.start}
             onCommit={setStart}
             onSetHere={() => setStart(cursor())}
-            onHear={() => playSpan(range.start, Math.min(range.start + HEAR_SECONDS, duration))}
+            onHear={() =>
+              playSpan(
+                range.start,
+                Math.min(range.start + HEAR_SECONDS, duration),
+              )
+            }
             hearLabel={`Play ${HEAR_SECONDS} seconds from the start point`}
           />
           <TimeField
@@ -429,26 +559,55 @@ export default function EditorPage() {
             value={range.end}
             onCommit={setEnd}
             onSetHere={() => setEnd(cursor())}
-            onHear={() => playSpan(Math.max(range.end - HEAR_SECONDS, 0), range.end)}
+            onHear={() =>
+              playSpan(Math.max(range.end - HEAR_SECONDS, 0), range.end)
+            }
             hearLabel={`Play the ${HEAR_SECONDS} seconds before the end point`}
           />
 
           <p className="text-xs font-mono text-parchment-500">
-            Range <span className="text-parchment-100">{formatTime(rangeLen, 2)}</span> of {formatTime(duration, 2)}
+            Range{" "}
+            <span className="text-parchment-100">
+              {formatTime(rangeLen, 2)}
+            </span>{" "}
+            of {formatTime(duration, 2)}
             {" · "}
-            Cursor <span className="text-parchment-100"><CursorReadout audioRef={audioRef} /></span>
+            Cursor{" "}
+            <span className="text-parchment-100">
+              <CursorReadout audioRef={audioRef} />
+            </span>
           </p>
 
           <div className="space-y-2">
-            <button className="btn-primary w-full flex items-center justify-center gap-1.5 !py-2" onClick={keepRange} disabled={busy || isWhole}>
+            <button
+              className="btn-primary w-full flex items-center justify-center gap-1.5 !py-2"
+              onClick={keepRange}
+              disabled={busy || isWhole}
+            >
               <Crop className="w-3.5 h-3.5" /> Keep range
-              {!isWhole && <span className="font-mono normal-case opacity-70">→ {formatTime(rangeLen, 1)}</span>}
+              {!isWhole && (
+                <span className="font-mono normal-case opacity-70">
+                  → {formatTime(rangeLen, 1)}
+                </span>
+              )}
             </button>
-            <button className="btn-ghost w-full flex items-center justify-center gap-1.5 !py-2" onClick={removeRange} disabled={busy || isWhole}>
+            <button
+              className="btn-ghost w-full flex items-center justify-center gap-1.5 !py-2"
+              onClick={removeRange}
+              disabled={busy || isWhole}
+            >
               <Scissors className="w-3.5 h-3.5" /> Remove range
-              {!isWhole && <span className="opacity-70">→ {formatTime(duration - rangeLen, 1)}</span>}
+              {!isWhole && (
+                <span className="opacity-70">
+                  → {formatTime(duration - rangeLen, 1)}
+                </span>
+              )}
             </button>
-            <button className="btn-ghost w-full flex items-center justify-center gap-1.5 !py-2" onClick={() => setRange({ start: 0, end: duration })} disabled={isWhole}>
+            <button
+              className="btn-ghost w-full flex items-center justify-center gap-1.5 !py-2"
+              onClick={() => setRange({ start: 0, end: duration })}
+              disabled={isWhole}
+            >
               <RotateCcw className="w-3.5 h-3.5" /> Reset range
             </button>
           </div>
@@ -463,7 +622,10 @@ export default function EditorPage() {
               <label className="block w-24">
                 <span className="label-eyebrow block mb-1">Seconds</span>
                 <input
-                  type="number" min="0.1" max="600" step="0.5"
+                  type="number"
+                  min="0.1"
+                  max="600"
+                  step="0.5"
                   className="input !py-2 w-full"
                   value={silenceSeconds}
                   onChange={(e) => setSilenceSeconds(e.target.value)}
@@ -471,14 +633,22 @@ export default function EditorPage() {
               </label>
               <label className="block flex-1">
                 <span className="label-eyebrow block mb-1">Where</span>
-                <select className="select w-full" value={silenceWhere} onChange={(e) => setSilenceWhere(e.target.value)}>
+                <select
+                  className="select w-full"
+                  value={silenceWhere}
+                  onChange={(e) => setSilenceWhere(e.target.value)}
+                >
                   <option value="start">Start of track</option>
                   <option value="end">End of track</option>
                   <option value="cursor">At the playhead</option>
                 </select>
               </label>
             </div>
-            <button className="btn-ghost w-full flex items-center justify-center gap-1.5 !py-2" onClick={addSilence} disabled={busy}>
+            <button
+              className="btn-ghost w-full flex items-center justify-center gap-1.5 !py-2"
+              onClick={addSilence}
+              disabled={busy}
+            >
               <Plus className="w-3.5 h-3.5" /> Add silence
             </button>
           </div>
@@ -486,9 +656,14 @@ export default function EditorPage() {
           <div className="border-t border-ink-600 pt-4 space-y-2">
             <p className="text-sm text-parchment-300">Auto-trim</p>
             <p className="text-[11px] text-parchment-700 leading-snug">
-              Removes quiet lead-in and tail (below −50 dB). Doesn't touch silence in the middle.
+              Removes quiet lead-in and tail (below −50 dB). Doesn't touch
+              silence in the middle.
             </p>
-            <button className="btn-ghost w-full flex items-center justify-center gap-1.5 !py-2" onClick={autoTrimSilence} disabled={busy}>
+            <button
+              className="btn-ghost w-full flex items-center justify-center gap-1.5 !py-2"
+              onClick={autoTrimSilence}
+              disabled={busy}
+            >
               <Sparkles className="w-3.5 h-3.5" /> Trim silence at both ends
             </button>
           </div>
@@ -496,14 +671,25 @@ export default function EditorPage() {
 
         <div className="space-y-5">
           {options && (
-            <SavePanel info={info} formats={options.formats} bitrates={options.bitrates} busy={busy} onSave={save} />
+            <SavePanel
+              info={info}
+              formats={options.formats}
+              bitrates={options.bitrates}
+              busy={busy}
+              onSave={save}
+            />
           )}
           {info.history.length > 0 && (
             <div className="panel p-4">
               <p className="label-eyebrow mb-2">History</p>
               <ol className="flex flex-wrap gap-2 text-xs font-mono text-parchment-300">
                 {info.history.map((h, i) => (
-                  <li key={i} className="px-2 py-1 rounded bg-ink-700 border border-ink-600">{i + 1}. {h}</li>
+                  <li
+                    key={i}
+                    className="px-2 py-1 rounded bg-ink-700 border border-ink-600"
+                  >
+                    {i + 1}. {h}
+                  </li>
                 ))}
               </ol>
             </div>

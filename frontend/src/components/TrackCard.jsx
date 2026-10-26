@@ -18,7 +18,12 @@ export default function TrackCard({ item, onChanged }) {
   const litSegments = Math.round((pct / 100) * SEGMENTS);
   const isError = item.status === "failed" || item.status === "cancelled";
   const isComplete = item.status === "completed";
-  const active = ["queued", "fetching_info", "downloading", "processing"].includes(item.status);
+  const active = [
+    "queued",
+    "fetching_info",
+    "downloading",
+    "processing",
+  ].includes(item.status);
 
   async function handleCancel() {
     await api.cancelDownload(item.id);
@@ -46,14 +51,20 @@ export default function TrackCard({ item, onChanged }) {
       <div className="track-body">
         <div className="track-top">
           <p className="track-title">{item.title || item.url}</p>
-          <span className={`badge ${item.status}`}>{STATUS_LABEL[item.status] || item.status}</span>
+          <span className={`badge ${item.status}`}>
+            {STATUS_LABEL[item.status] || item.status}
+          </span>
         </div>
 
         <div className="track-meta">
           {item.uploader ? `${item.uploader} · ` : ""}
           {item.extractor || "—"}
           {item.duration ? ` · ${formatDuration(item.duration)}` : ""}
-          {item.media_type === "audio" ? ` · audio/${item.audio_format}` : item.quality ? ` · ${item.quality === "best" ? "best quality" : item.quality + "p"}` : ""}
+          {item.media_type === "audio"
+            ? ` · audio/${item.audio_format}`
+            : item.quality
+              ? ` · ${item.quality === "best" ? "best quality" : item.quality + "p"}`
+              : ""}
         </div>
 
         <div className="vu-bar">
@@ -66,14 +77,24 @@ export default function TrackCard({ item, onChanged }) {
         </div>
 
         <div className="track-stats-row">
-          <span>{active ? `${pct.toFixed(0)}%` : isComplete ? formatBytes(item.filesize) : ""}</span>
+          <span>
+            {active
+              ? `${pct.toFixed(0)}%`
+              : isComplete
+                ? formatBytes(item.filesize)
+                : ""}
+          </span>
           <span>
             {item.speed ? `${item.speed} ` : ""}
             {item.eta ? `ETA ${item.eta}` : ""}
           </span>
         </div>
 
-        {item.error_message && <div className="track-error" title={item.error_message}>{item.error_message}</div>}
+        {item.error_message && (
+          <div className="track-error" title={item.error_message}>
+            {item.error_message}
+          </div>
+        )}
       </div>
 
       <div className="track-actions">

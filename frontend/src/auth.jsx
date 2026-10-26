@@ -1,4 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { api, setAuthToken } from "./api.js";
 
 const AuthContext = createContext(null);
@@ -31,7 +37,8 @@ export function AuthProvider({ children }) {
       setStatus("anon");
     };
     window.addEventListener("diwan:unauthorized", onUnauthorized);
-    return () => window.removeEventListener("diwan:unauthorized", onUnauthorized);
+    return () =>
+      window.removeEventListener("diwan:unauthorized", onUnauthorized);
   }, [checkSession]);
 
   const login = useCallback(async (u, p) => {

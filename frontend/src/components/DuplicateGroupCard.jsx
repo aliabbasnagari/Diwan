@@ -35,14 +35,18 @@ export default function DuplicateGroupCard({ group }) {
   // real duplicate at all), so Apply is a no-op until the user says otherwise.
   const [keep, setKeep] = useState(() => {
     if (isInformational) return new Set(group.members.map((m) => m.path));
-    const suggested = group.members.find((m) => m.is_suggested_keeper) || group.members[0];
+    const suggested =
+      group.members.find((m) => m.is_suggested_keeper) || group.members[0];
     return new Set([suggested?.path]);
   });
 
   const removeCount = group.members.length - keep.size;
   const spaceToFree = useMemo(
-    () => group.members.filter((m) => !keep.has(m.path)).reduce((sum, m) => sum + (m.filesize || 0), 0),
-    [group.members, keep]
+    () =>
+      group.members
+        .filter((m) => !keep.has(m.path))
+        .reduce((sum, m) => sum + (m.filesize || 0), 0),
+    [group.members, keep],
   );
 
   function toggle(path, nextKeep) {
@@ -52,7 +56,9 @@ export default function DuplicateGroupCard({ group }) {
         next.add(path);
       } else {
         if (next.size <= 1 && next.has(path)) {
-          toast.message("At least one file has to stay — use \"Not a duplicate\" to keep them all");
+          toast.message(
+            'At least one file has to stay — use "Not a duplicate" to keep them all',
+          );
           return prev;
         }
         next.delete(path);
@@ -69,7 +75,9 @@ export default function DuplicateGroupCard({ group }) {
   const resolveMutation = useMutation({
     mutationFn: () => api.resolveDuplicateGroup(group.id, Array.from(keep)),
     onSuccess: (res) => {
-      toast.success(`Kept ${res.kept.length}, quarantined ${res.quarantined.length}`);
+      toast.success(
+        `Kept ${res.kept.length}, quarantined ${res.quarantined.length}`,
+      );
       invalidate();
     },
     onError: (e) => toast.error(e.message),
@@ -77,7 +85,10 @@ export default function DuplicateGroupCard({ group }) {
 
   const ignoreMutation = useMutation({
     mutationFn: () => api.ignoreDuplicateGroup(group.id),
-    onSuccess: () => { toast.success("Marked as not duplicates"); invalidate(); },
+    onSuccess: () => {
+      toast.success("Marked as not duplicates");
+      invalidate();
+    },
     onError: (e) => toast.error(e.message),
   });
 
@@ -87,16 +98,21 @@ export default function DuplicateGroupCard({ group }) {
   return (
     <div className="panel p-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <span className={`text-[10px] font-mono uppercase tracking-wide px-2 py-0.5 rounded ${CATEGORY_STYLE[group.category] || ""}`}>
+        <span
+          className={`text-[10px] font-mono uppercase tracking-wide px-2 py-0.5 rounded ${CATEGORY_STYLE[group.category] || ""}`}
+        >
           {CATEGORY_LABEL[group.category] || group.category}
         </span>
-        <span className="text-[10.5px] font-mono text-parchment-700">{group.members.length} files</span>
+        <span className="text-[10.5px] font-mono text-parchment-700">
+          {group.members.length} files
+        </span>
       </div>
 
       {isInformational && (
         <p className="text-[11px] font-mono text-parchment-700 leading-relaxed">
-          Same title/artist but the audio doesn't match closely — likely a live version, remaster,
-          remix, or cover. Probably not a real duplicate; left as-is unless you say otherwise below.
+          Same title/artist but the audio doesn't match closely — likely a live
+          version, remaster, remix, or cover. Probably not a real duplicate;
+          left as-is unless you say otherwise below.
         </p>
       )}
 
@@ -108,7 +124,9 @@ export default function DuplicateGroupCard({ group }) {
             <div
               key={m.id}
               className={`flex items-center gap-3 rounded-lg border p-2.5 transition ${
-                isKeep ? "border-ink-600" : "border-rust-700/40 bg-rust-500/[0.04] opacity-80"
+                isKeep
+                  ? "border-ink-600"
+                  : "border-rust-700/40 bg-rust-500/[0.04] opacity-80"
               }`}
             >
               {actionable && (
@@ -130,7 +148,9 @@ export default function DuplicateGroupCard({ group }) {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-medium truncate">{m.title || m.path}</p>
+                  <p className="text-sm font-medium truncate">
+                    {m.title || m.path}
+                  </p>
                   <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-ink-950 text-parchment-500 shrink-0">
                     {ext}
                   </span>
@@ -141,16 +161,25 @@ export default function DuplicateGroupCard({ group }) {
                   )}
                 </div>
                 <p className="text-[11px] font-mono text-parchment-700 truncate mt-0.5">
-                  {m.artist ? `${m.artist} · ` : ""}{m.album ? `${m.album} · ` : ""}{m.path}
+                  {m.artist ? `${m.artist} · ` : ""}
+                  {m.album ? `${m.album} · ` : ""}
+                  {m.path}
                 </p>
                 <p className="text-[10.5px] font-mono text-parchment-700 mt-0.5">
                   {m.duration ? formatDuration(m.duration) : "—"}
                   {LOSSLESS_EXTS.has(ext) ? " · lossless" : ""}
                   {m.bitrate ? ` · ${Math.round(m.bitrate / 1000)}kbps` : ""}
-                  {m.sample_rate ? ` · ${(m.sample_rate / 1000).toFixed(1)}kHz` : ""}
+                  {m.sample_rate
+                    ? ` · ${(m.sample_rate / 1000).toFixed(1)}kHz`
+                    : ""}
                   {m.filesize ? ` · ${formatBytes(m.filesize)}` : ""}
                 </p>
-                <audio controls preload="none" className="w-full h-8 mt-1.5" src={api.trackAudioUrl(m.track_id)} />
+                <audio
+                  controls
+                  preload="none"
+                  className="w-full h-8 mt-1.5"
+                  src={api.trackAudioUrl(m.track_id)}
+                />
               </div>
             </div>
           );
@@ -170,7 +199,11 @@ export default function DuplicateGroupCard({ group }) {
             className="btn-primary flex items-center gap-1.5"
             onClick={() => resolveMutation.mutate()}
             disabled={busy || removeCount === 0}
-            title={removeCount === 0 ? "Mark at least one file to remove, or use \"Not a duplicate\"" : undefined}
+            title={
+              removeCount === 0
+                ? 'Mark at least one file to remove, or use "Not a duplicate"'
+                : undefined
+            }
           >
             <Trash2 className="w-3.5 h-3.5" />
             {resolveMutation.isPending

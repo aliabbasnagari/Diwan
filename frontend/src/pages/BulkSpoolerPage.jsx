@@ -1,14 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
 import { api } from "../api.js";
 import BulkUrlForm from "../components/BulkUrlForm.jsx";
 import BulkPendingItem from "../components/BulkPendingItem.jsx";
 import BulkActiveItem from "../components/BulkActiveItem.jsx";
 import BulkHistoryItem from "../components/BulkHistoryItem.jsx";
 
-const HISTORY_STATUSES = new Set(["completed", "failed", "cancelled", "skipped_duplicate"]);
+const HISTORY_STATUSES = new Set([
+  "completed",
+  "failed",
+  "cancelled",
+  "skipped_duplicate",
+]);
 
 function Countdown({ iso }) {
   const [, tick] = useState(0);
@@ -19,7 +34,10 @@ function Countdown({ iso }) {
   }, [iso]);
 
   if (!iso) return null;
-  const remaining = Math.max(0, Math.round((new Date(iso).getTime() - Date.now()) / 1000));
+  const remaining = Math.max(
+    0,
+    Math.round((new Date(iso).getTime() - Date.now()) / 1000),
+  );
   const m = Math.floor(remaining / 60);
   const s = remaining % 60;
   return (
@@ -31,11 +49,25 @@ function Countdown({ iso }) {
 
 export default function BulkSpoolerPage() {
   const qc = useQueryClient();
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+  );
 
-  const itemsQuery = useQuery({ queryKey: ["bulk-items"], queryFn: api.listBulkItems, refetchInterval: 2000 });
-  const statsQuery = useQuery({ queryKey: ["bulk-stats"], queryFn: api.bulkSpoolerStats, refetchInterval: 2000 });
-  const statusQuery = useQuery({ queryKey: ["bulk-status"], queryFn: api.bulkSpoolerStatus, refetchInterval: 2000 });
+  const itemsQuery = useQuery({
+    queryKey: ["bulk-items"],
+    queryFn: api.listBulkItems,
+    refetchInterval: 2000,
+  });
+  const statsQuery = useQuery({
+    queryKey: ["bulk-stats"],
+    queryFn: api.bulkSpoolerStats,
+    refetchInterval: 2000,
+  });
+  const statusQuery = useQuery({
+    queryKey: ["bulk-status"],
+    queryFn: api.bulkSpoolerStatus,
+    refetchInterval: 2000,
+  });
 
   const items = itemsQuery.data || [];
   const stats = statsQuery.data;
@@ -43,10 +75,16 @@ export default function BulkSpoolerPage() {
 
   const active = items.filter((i) => i.status === "downloading");
   const pending = useMemo(
-    () => items.filter((i) => i.status === "pending").sort((a, b) => a.position - b.position),
-    [items]
+    () =>
+      items
+        .filter((i) => i.status === "pending")
+        .sort((a, b) => a.position - b.position),
+    [items],
   );
-  const history = items.filter((i) => HISTORY_STATUSES.has(i.status)).slice().reverse();
+  const history = items
+    .filter((i) => HISTORY_STATUSES.has(i.status))
+    .slice()
+    .reverse();
 
   const [localPending, setLocalPending] = useState(pending);
   useEffect(() => setLocalPending(pending), [pending]);
@@ -78,7 +116,8 @@ export default function BulkSpoolerPage() {
         <div>
           <h1 className="font-display font-bold text-2xl">Bulk Spooler</h1>
           <p className="text-sm text-parchment-500 mt-1">
-            Queue a batch of URLs; they download one at a time with a random 3–6 minute pause between each.
+            Queue a batch of URLs; they download one at a time with a random 3–6
+            minute pause between each.
           </p>
         </div>
         <div className="flex gap-4 font-mono text-right">
@@ -109,15 +148,23 @@ export default function BulkSpoolerPage() {
       )}
 
       <p className="label-eyebrow mt-8 mb-3">
-        Up next {pending.length > 0 ? `(${pending.length}) — drag to reorder` : ""}
+        Up next{" "}
+        {pending.length > 0 ? `(${pending.length}) — drag to reorder` : ""}
       </p>
       {localPending.length === 0 ? (
         <div className="text-center py-10 px-6 border border-dashed border-ink-600 rounded-xl text-parchment-700 font-mono text-sm">
           Nothing queued — paste URLs above to get started.
         </div>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={localPending.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={localPending.map((i) => i.id)}
+            strategy={verticalListSortingStrategy}
+          >
             <div className="space-y-2">
               {localPending.map((item) => (
                 <BulkPendingItem
@@ -149,8 +196,12 @@ export default function BulkSpoolerPage() {
 function StatPill({ label, value }) {
   return (
     <div>
-      <div className="text-lg font-bold text-brass-400 leading-none">{value ?? "—"}</div>
-      <div className="text-[10px] uppercase tracking-wider text-parchment-700 mt-1">{label}</div>
+      <div className="text-lg font-bold text-brass-400 leading-none">
+        {value ?? "—"}
+      </div>
+      <div className="text-[10px] uppercase tracking-wider text-parchment-700 mt-1">
+        {label}
+      </div>
     </div>
   );
 }

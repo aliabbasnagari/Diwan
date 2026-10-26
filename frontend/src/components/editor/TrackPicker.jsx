@@ -14,7 +14,9 @@ export default function TrackPicker({ onPick, busy }) {
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     const list = needle
-      ? tracks.filter((t) => `${t.title} ${t.artist} ${t.album}`.toLowerCase().includes(needle))
+      ? tracks.filter((t) =>
+          `${t.title} ${t.artist} ${t.album}`.toLowerCase().includes(needle),
+        )
       : tracks;
     return list.slice(0, 200);
   }, [tracks, q]);
@@ -33,9 +35,13 @@ export default function TrackPicker({ onPick, busy }) {
       </div>
 
       {isLoading ? (
-        <p className="text-sm font-mono text-parchment-700 py-8 text-center">Loading library…</p>
+        <p className="text-sm font-mono text-parchment-700 py-8 text-center">
+          Loading library…
+        </p>
       ) : filtered.length === 0 ? (
-        <p className="text-sm font-mono text-parchment-700 py-8 text-center">No tracks match.</p>
+        <p className="text-sm font-mono text-parchment-700 py-8 text-center">
+          No tracks match.
+        </p>
       ) : (
         <div className="max-h-[28rem] overflow-y-auto divide-y divide-ink-600/60">
           {filtered.map((t) => (
@@ -47,7 +53,9 @@ export default function TrackPicker({ onPick, busy }) {
             >
               <span className="min-w-0 flex-1">
                 <span className="block text-sm truncate">{t.title}</span>
-                <span className="block text-xs font-mono text-parchment-500 truncate">{t.artist} · {t.album}</span>
+                <span className="block text-xs font-mono text-parchment-500 truncate">
+                  {t.artist} · {t.album}
+                </span>
               </span>
               <span className="text-xs font-mono text-parchment-700 shrink-0">
                 {t.ext?.toUpperCase()} · {formatDuration(t.duration)}

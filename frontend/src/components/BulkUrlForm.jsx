@@ -30,7 +30,10 @@ export default function BulkUrlForm() {
     staleTime: 60_000,
   });
 
-  const urlCount = urlsText.split("\n").map((s) => s.trim()).filter(Boolean).length;
+  const urlCount = urlsText
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean).length;
 
   const submitMutation = useMutation({
     mutationFn: () =>
@@ -48,8 +51,14 @@ export default function BulkUrlForm() {
         tag_year: tagYear || null,
       }),
     onSuccess: (res) => {
-      if (res.created) toast.success(`Queued ${res.created} URL${res.created === 1 ? "" : "s"}`);
-      if (res.skipped_duplicates) toast.message(`Skipped ${res.skipped_duplicates} duplicate${res.skipped_duplicates === 1 ? "" : "s"}`);
+      if (res.created)
+        toast.success(
+          `Queued ${res.created} URL${res.created === 1 ? "" : "s"}`,
+        );
+      if (res.skipped_duplicates)
+        toast.message(
+          `Skipped ${res.skipped_duplicates} duplicate${res.skipped_duplicates === 1 ? "" : "s"}`,
+        );
       setUrlsText("");
       qc.invalidateQueries({ queryKey: ["bulk-items"] });
       qc.invalidateQueries({ queryKey: ["bulk-stats"] });
@@ -60,10 +69,14 @@ export default function BulkUrlForm() {
 
   return (
     <div className="panel p-5 space-y-4">
-      <Labeled label={`URLs (one per line)${urlCount ? ` · ${urlCount} queued` : ""}`}>
+      <Labeled
+        label={`URLs (one per line)${urlCount ? ` · ${urlCount} queued` : ""}`}
+      >
         <textarea
           className="input w-full font-mono text-xs min-h-[96px] resize-y"
-          placeholder={"https://example.com/watch?v=...\nhttps://example.com/watch?v=...\n…"}
+          placeholder={
+            "https://example.com/watch?v=...\nhttps://example.com/watch?v=...\n…"
+          }
           value={urlsText}
           onChange={(e) => setUrlsText(e.target.value)}
         />
@@ -76,7 +89,9 @@ export default function BulkUrlForm() {
               key={t}
               onClick={() => setMediaType(t)}
               className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
-                mediaType === t ? "bg-brass-600 text-parchment-100" : "text-parchment-500 hover:text-parchment-100"
+                mediaType === t
+                  ? "bg-brass-600 text-parchment-100"
+                  : "text-parchment-500 hover:text-parchment-100"
               }`}
             >
               {t === "video" ? "Video" : "Audio only"}
@@ -86,7 +101,11 @@ export default function BulkUrlForm() {
 
         {mediaType === "video" ? (
           <Labeled label="Quality">
-            <select className="select" value={quality} onChange={(e) => setQuality(e.target.value)}>
+            <select
+              className="select"
+              value={quality}
+              onChange={(e) => setQuality(e.target.value)}
+            >
               <option value="best">Best available</option>
               <option value="1080">1080p</option>
               <option value="720">720p</option>
@@ -95,9 +114,15 @@ export default function BulkUrlForm() {
           </Labeled>
         ) : (
           <Labeled label="Audio format">
-            <select className="select" value={audioFormat} onChange={(e) => setAudioFormat(e.target.value)}>
+            <select
+              className="select"
+              value={audioFormat}
+              onChange={(e) => setAudioFormat(e.target.value)}
+            >
               {AUDIO_FORMATS.map((f) => (
-                <option key={f} value={f}>{f.toUpperCase()}</option>
+                <option key={f} value={f}>
+                  {f.toUpperCase()}
+                </option>
               ))}
             </select>
           </Labeled>
@@ -105,7 +130,11 @@ export default function BulkUrlForm() {
 
         {mediaType === "video" && (
           <label className="flex items-center gap-2 text-xs font-mono text-parchment-500 cursor-pointer">
-            <input type="checkbox" checked={subtitles} onChange={(e) => setSubtitles(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={subtitles}
+              onChange={(e) => setSubtitles(e.target.checked)}
+            />
             Subtitles (en)
           </label>
         )}
@@ -114,13 +143,19 @@ export default function BulkUrlForm() {
       {mediaType === "audio" && (
         <div className="rounded-lg border border-ink-600 p-3.5 space-y-3">
           <label className="flex items-center gap-2 text-xs font-mono text-parchment-300 cursor-pointer">
-            <input type="checkbox" checked={addToLibrary} onChange={(e) => setAddToLibrary(e.target.checked)} />
-            Add to library after each download (tagged &amp; organized for Navidrome)
+            <input
+              type="checkbox"
+              checked={addToLibrary}
+              onChange={(e) => setAddToLibrary(e.target.checked)}
+            />
+            Add to library after each download (tagged &amp; organized for
+            Navidrome)
           </label>
           {addToLibrary && (
             <>
               <p className="text-[10.5px] font-mono text-parchment-700">
-                Optional — applied to every URL in this batch. Leave blank to use each track's own metadata.
+                Optional — applied to every URL in this batch. Leave blank to
+                use each track's own metadata.
               </p>
               <div className="grid grid-cols-4 gap-2">
                 <SuggestInput
@@ -165,7 +200,9 @@ export default function BulkUrlForm() {
           disabled={submitMutation.isPending || urlCount === 0}
         >
           <ListPlus className="w-3.5 h-3.5" />
-          {submitMutation.isPending ? "Queuing…" : `Add to bulk queue${urlCount ? ` (${urlCount})` : ""}`}
+          {submitMutation.isPending
+            ? "Queuing…"
+            : `Add to bulk queue${urlCount ? ` (${urlCount})` : ""}`}
         </button>
       </div>
     </div>
