@@ -258,8 +258,17 @@ def rename_artist(artist_id: str, req: RenameRequest, db: Session = Depends(get_
                 grouping_artist = tags.get("albumartist") or tags.get("artist")
                 if grouping_artist != old_name:
                     continue
-                field = "albumartist" if tags.get("albumartist") else "artist"
-                metadata.write_tags(path, {field: new_name})
+                if tags.get("albumartist"):
+                    patch = {"albumartist": new_name}
+                    # the (possibly multi-value, comma-separated) artist tag
+                    # may separately credit this same artist — update just
+                    # that entry if so, leaving any co-artists untouched
+                    artist_parts = [p.strip() for p in (tags.get("artist") or "").split(",") if p.strip()]
+                    if old_name in artist_parts:
+                        patch["artist"] = ", ".join(new_name if p == old_name else p for p in artist_parts)
+                else:
+                    patch = {"artist": new_name}
+                metadata.write_tags(path, patch)
                 new_tags = metadata.read_tags(path)
                 new_path = organizer.reorganize_track(
                     path, lib,
