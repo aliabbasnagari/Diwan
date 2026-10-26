@@ -2,6 +2,8 @@ import re
 import shutil
 from pathlib import Path
 
+from . import lyrics
+
 _INVALID_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 
 
@@ -83,6 +85,7 @@ def reorganize_track(path: Path, library_dir: Path, artist: str, album: str, tit
         counter += 1
 
     shutil.move(str(path), str(target))
+    lyrics.move_companion(path, target)
 
     # clean up now-empty parent directories left behind (but never the library root)
     old_parent = path.parent.resolve()

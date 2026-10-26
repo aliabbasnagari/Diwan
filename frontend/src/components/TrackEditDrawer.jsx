@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { X, Trash2, FolderTree, Upload, Scissors } from "lucide-react";
+import { X, Trash2, FolderTree, Upload, Scissors, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../api.js";
 import { formatDuration, formatBytes } from "../utils.js";
@@ -30,7 +30,9 @@ const FIELD_SUGGESTION_KEY = {
 export default function TrackEditDrawer({ track, onClose }) {
   const [form, setForm] = useState({});
   const [reorganize, setReorganize] = useState(true);
+  const [lyricsText, setLyricsText] = useState("");
   const fileInputRef = useRef(null);
+  const lyricsFileInputRef = useRef(null);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -38,6 +40,12 @@ export default function TrackEditDrawer({ track, onClose }) {
     queryKey: ["tag-suggestions"],
     queryFn: api.getTagSuggestions,
     staleTime: 60_000,
+  });
+
+  const lyricsQuery = useQuery({
+    queryKey: ["track-lyrics", track?.id],
+    queryFn: () => api.getLyrics(track.id),
+    enabled: !!track,
   });
 
   useEffect(() => {
@@ -53,8 +61,13 @@ export default function TrackEditDrawer({ track, onClose }) {
         discnumber: track.discnumber || "",
         comment: track.comment || "",
       });
+      setLyricsText("");
     }
   }, [track]);
+
+  useEffect(() => {
+    if (lyricsQuery.data) setLyricsText(lyricsQuery.data.text || "");
+  }, [lyricsQuery.data]);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["library-tree"] });
@@ -87,6 +100,15 @@ export default function TrackEditDrawer({ track, onClose }) {
     onSuccess: (updated) => {
       toast.success(updated.path === track.path ? "Already in the right place" : `Moved to ${updated.path}`);
       invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const lyricsMutation = useMutation({
+    mutationFn: () => api.updateLyrics(track.id, lyricsText),
+    onSuccess: () => {
+      toast.success(lyricsText.trim() ? "Lyrics saved" : "Lyrics cleared");
+      qc.invalidateQueries({ queryKey: ["track-lyrics", track.id] });
     },
     onError: (e) => toast.error(e.message),
   });
@@ -169,6 +191,51 @@ export default function TrackEditDrawer({ track, onClose }) {
             <input type="checkbox" checked={reorganize} onChange={(e) => setReorganize(e.target.checked)} />
             Move file to match Artist/Album/Title on save
           </label>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="label-eyebrow block">Lyrics</label>
+              <button
+                type="button"
+                className="btn-ghost flex items-center gap-1.5 !py-1 !px-2"
+                onClick={() => lyricsFileInputRef.current?.click()}
+                title="Upload a .lrc or .txt lyrics file"
+              >
+                <FileText className="w-3 h-3" /> Upload
+              </button>
+              <input
+                ref={lyricsFileInputRef}
+                type="file"
+                accept=".lrc,.txt,text/plain"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    file.text().then(setLyricsText).catch(() => toast.error("Could not read file"));
+                  }
+                  e.target.value = "";
+                }}
+              />
+            </div>
+            <textarea
+              className="input w-full min-h-[140px] resize-y"
+              placeholder={"Plain text, or LRC-timestamped for synced lyrics:\n[00:12.00] First line\n[00:16.40] Next line"}
+              value={lyricsText}
+              onChange={(e) => setLyricsText(e.target.value)}
+            />
+            <div className="flex items-center justify-between gap-3 mt-1.5">
+              <span className="text-[10.5px] text-parchment-700 leading-snug">
+                Saved as a .lrc file next to the track — Navidrome reads it directly, synced or plain.
+              </span>
+              <button
+                className="btn-ghost shrink-0"
+                onClick={() => lyricsMutation.mutate()}
+                disabled={lyricsMutation.isPending || lyricsQuery.isLoading}
+              >
+                {lyricsMutation.isPending ? "Saving…" : "Save lyrics"}
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="px-5 py-4 border-t border-ink-600 flex items-center gap-2">

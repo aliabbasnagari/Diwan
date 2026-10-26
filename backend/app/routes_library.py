@@ -7,9 +7,9 @@ from sqlalchemy.orm import Session
 
 from .config import AUDIO_EXTENSIONS
 from .database import get_db
-from .schemas import TrackTagsUpdate, OrganizeRequest, RenameRequest
+from .schemas import TrackTagsUpdate, OrganizeRequest, RenameRequest, LyricsUpdateRequest
 from . import settings_service
-from .library import scanner, metadata, organizer, tracking
+from .library import scanner, metadata, organizer, tracking, lyrics
 
 router = APIRouter(prefix="/api/library", tags=["library"])
 
@@ -161,6 +161,28 @@ async def set_track_artwork(track_id: str, file: UploadFile = File(...), db: Ses
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=f"Could not embed artwork: {exc}")
     return scanner.track_summary(_lib_dir(db), path)
+
+
+# --- track-level lyrics: a .lrc sidecar file next to the track (same
+# basename, same folder) — the format Navidrome's LyricsPriority setting
+# checks first by default, and the only one that works for every
+# container format Diwan handles. Holds plain text or LRC-timestamped
+# ("[mm:ss.xx] line") synced lyrics; Navidrome tells them apart itself. ---
+
+@router.get("/tracks/{track_id}/lyrics")
+def get_lyrics(track_id: str, db: Session = Depends(get_db)):
+    path = _resolve(db, track_id)
+    return {"text": lyrics.read_lyrics(path)}
+
+
+@router.put("/tracks/{track_id}/lyrics")
+def set_lyrics(track_id: str, req: LyricsUpdateRequest, db: Session = Depends(get_db)):
+    path = _resolve(db, track_id)
+    try:
+        lyrics.write_lyrics(path, req.text)
+    except OSError as exc:
+        raise HTTPException(status_code=400, detail=f"Could not save lyrics: {exc}")
+    return {"text": lyrics.read_lyrics(path)}
 
 
 # --- album-level artwork: a cover.jpg file in the album folder (what

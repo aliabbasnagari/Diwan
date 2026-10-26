@@ -97,6 +97,10 @@ class RenameRequest(BaseModel):
     new_name: str
 
 
+class LyricsUpdateRequest(BaseModel):
+    text: str
+
+
 class DuplicateResolveRequest(BaseModel):
     keep_paths: list[str]
 

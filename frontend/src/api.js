@@ -109,6 +109,10 @@ export const api = {
   // --- library: track audio (inline playback) ---
   trackAudioUrl: (id) => `/api/library/tracks/${id}/audio?${tokenParam()}`,
 
+  // --- library: track-level lyrics (.lrc sidecar file) ---
+  getLyrics: (id) => unwrap(client.get(`/library/tracks/${id}/lyrics`)),
+  updateLyrics: (id, text) => unwrap(client.put(`/library/tracks/${id}/lyrics`, { text })),
+
   // --- library: track-level art (embedded in that one file only) ---
   trackArtworkUrl: (id) => `/api/library/tracks/${id}/artwork?_=${Date.now()}&${tokenParam()}`,
   uploadTrackArtwork: (id, file) => {
