@@ -8,13 +8,14 @@ Diwan: a self-hosted library manager for Navidrome. FastAPI backend (`backend/ap
 
 ## Commands
 
-There is no test suite and no linter configured.
+There is no linter configured. There is a small pytest/vitest suite (unit-level only, no DB/FastAPI integration tests yet).
 
 Backend (Python 3.10+, ffmpeg on PATH, `fpcalc`/Chromaprint on PATH for the Duplicates scan, `NAVIDROME_URL` env var required):
 ```bash
 cd backend
 pip install -r requirements.txt
 NAVIDROME_URL=http://localhost:4533 python run.py     # http://127.0.0.1:4534
+pip install -r requirements-dev.txt && pytest         # run backend tests (backend/tests/)
 ```
 Frontend:
 ```bash
@@ -22,6 +23,7 @@ cd frontend
 npm install
 npm run dev        # http://127.0.0.1:4535, Vite proxies /api/* to :4534
 npm run build      # outputs frontend/dist
+npm test           # run frontend tests (vitest, src/*.test.js)
 ```
 Full stack: `cp .env.example .env && docker compose up --build` (UI on :8080, API on :8000).
 
